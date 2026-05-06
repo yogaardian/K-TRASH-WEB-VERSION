@@ -1,22 +1,26 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import ChartistGraph from "react-chartist";
+import axios from "axios";
 // react-bootstrap components
 import {
-  Badge,
-  Button,
   Card,
-  Navbar,
-  Nav,
-  Table,
   Container,
   Row,
   Col,
-  Form,
-  OverlayTrigger,
-  Tooltip,
 } from "react-bootstrap";
 
 function Dashboard() {
+  const [totalOrders, setTotalOrders] = useState(0);
+
+  useEffect(() => {
+    // Fetch pending orders as an example statistic
+    axios.get("http://localhost:3000/orders/pending")
+      .then(res => {
+        setTotalOrders(res.data.length);
+      })
+      .catch(err => console.error(err));
+  }, []);
+
   return (
     <>
       <Container fluid>
@@ -32,8 +36,8 @@ function Dashboard() {
                   </Col>
                   <Col xs="7">
                     <div className="numbers">
-                      <p className="card-category">Total Customer</p>
-                      <Card.Title as="h4">1 orang</Card.Title>
+                      <p className="card-category">Total Order Aktif</p>
+                      <Card.Title as="h4">{totalOrders} Transaksi</Card.Title>
                     </div>
                   </Col>
                 </Row>
@@ -42,7 +46,7 @@ function Dashboard() {
                 <hr></hr>
                 <div className="stats">
                   <i className="fas fa-redo mr-1"></i>
-                  Update Now
+                  Data dari /orders/pending
                 </div>
               </Card.Footer>
             </Card>
@@ -84,7 +88,7 @@ function Dashboard() {
                   </Col>
                   <Col xs="7">
                     <div className="numbers">
-                      <p className="card-category">Total Sampah Hari Ini</p>
+                      <p className="card-category">Total Sampah</p>
                       <Card.Title as="h4">60 KG</Card.Title>
                     </div>
                   </Col>
@@ -110,7 +114,7 @@ function Dashboard() {
                   </Col>
                   <Col xs="7">
                     <div className="numbers">
-                      <p className="card-category">Transaksi Hari Ini</p>
+                      <p className="card-category">Riwayat</p>
                       <Card.Title as="h4">12</Card.Title>
                     </div>
                   </Col>
@@ -130,8 +134,8 @@ function Dashboard() {
           <Col md="8">
             <Card>
               <Card.Header>
-                <Card.Title as="h4">Transaksi</Card.Title>
-                <p className="card-category">Performa Harian</p>
+                <Card.Title as="h4">Aktivitas Transaksi</Card.Title>
+                <p className="card-category">Performa Harian K-Trash</p>
               </Card.Header>
               <Card.Body>
                 <div className="ct-chart" id="chartHours">
@@ -140,19 +144,19 @@ function Dashboard() {
                       labels: [
                         "9:00",
                         "12:00",
-                        "15:00PM",
-                        "18:00PM",
-                        "21:00PM",
-                        "00:00PM",
+                        "15:00",
+                        "18:00",
+                        "21:00",
+                        "00:00",
                       ],
                       series: [
-                        [23, 113, 67, 108, 190, 239, 307, 308],
+                        [2, 5, 3, 10, 4, 1],
                       ],
                     }}
                     type="Line"
                     options={{
                       low: 0,
-                      high: 800,
+                      high: 15,
                       showArea: false,
                       height: "245px",
                       axisX: {
@@ -166,25 +170,13 @@ function Dashboard() {
                         right: 50,
                       },
                     }}
-                    responsiveOptions={[
-                      [
-                        "screen and (max-width: 640px)",
-                        {
-                          axisX: {
-                            labelInterpolationFnc: function (value) {
-                              return value[0];
-                            },
-                          },
-                        },
-                      ],
-                    ]}
                   />
                 </div>
               </Card.Body>
               <Card.Footer>
                 <div className="legend">
                   <i className="fas fa-circle text-info"></i>
-                  Open
+                  Transaksi Masuk
                 </div>
                 <hr></hr>
                 <div className="stats">
@@ -193,8 +185,6 @@ function Dashboard() {
                 </div>
               </Card.Footer>
             </Card>
-          </Col>
-          <Col md="4">
           </Col>
         </Row>
       </Container>

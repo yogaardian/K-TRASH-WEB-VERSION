@@ -1,11 +1,13 @@
-﻿require('dotenv').config();
+require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
 const db = require('./src/db');
 const transactionService = require('./src/services/transactionService');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+app.use(cors());
 app.use(express.json());
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
@@ -44,6 +46,13 @@ async function seedDefaultAccounts() {
       password: '123456',
       role: 'user',
       nomor_hp: '081234567891',
+    },
+    {
+      nama: 'Admin Demo',
+      email: 'admin@test.com',
+      password: '123456',
+      role: 'admin',
+      nomor_hp: '081234567892',
     },
   ];
 

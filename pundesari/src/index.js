@@ -27,14 +27,50 @@ import "./assets/css/demo.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 
 import AdminLayout from "layouts/Admin.js";
+import Login from "views/Login.js";
+
+// User Flow
+import UserDashboard from "views/user/UserDashboard.js";
+import Profile from "views/user/Profile.js";
+import History from "views/user/History.js";
+import PickupPage from "views/user/PickupPage.js";
+import SelectWaste from "views/user/SelectWaste.js";
+import FindDriver from "views/user/FindDriver.js";
+
+// Driver Flow
+import DriverDashboard from "views/driver/DriverDashboard.js";
+import OrderDetail from "views/driver/OrderDetail.js";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
+
+const isLogin = localStorage.getItem("isLogin");
 
 root.render(
   <BrowserRouter>
     <Switch>
-      <Route path="/admin" render={(props) => <AdminLayout {...props} />} />
-      <Redirect from="/" to="/admin/dashboard" />
+      <Route path="/login" render={(props) => <Login {...props} />} />
+      
+      {/* User Routes */}
+      <Route path="/user/dashboard" render={(props) => <UserDashboard {...props} />} />
+      <Route path="/user/profile" render={(props) => <Profile {...props} />} />
+      <Route path="/user/history" render={(props) => <History {...props} />} />
+      <Route path="/user/pickup" render={(props) => <PickupPage {...props} />} />
+      <Route path="/user/select-waste" render={(props) => <SelectWaste {...props} />} />
+      <Route path="/user/find-driver" render={(props) => <FindDriver {...props} />} />
+      
+      {/* Driver Routes */}
+      <Route path="/driver/dashboard" render={(props) => <DriverDashboard {...props} />} />
+      <Route path="/driver/order/:id" render={(props) => <OrderDetail {...props} />} />
+
+      {/* Admin Route */}
+      <Route path="/admin" render={(props) => {
+        // Protect the admin routes
+        if (!localStorage.getItem("isLogin")) {
+          return <Redirect to="/login" />;
+        }
+        return <AdminLayout {...props} />;
+      }} />
+      <Redirect from="/" to="/login" />
     </Switch>
   </BrowserRouter>
 );
