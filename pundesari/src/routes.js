@@ -23,6 +23,9 @@ import Icons from "views/admin/Icons.js";
 import Maps from "views/admin/Maps.js";
 import Notifications from "views/admin/Notifications.js";
 import Upgrade from "views/admin/Upgrade.js";
+import Saldo from "views/admin/Saldo.js";
+
+
 
 const dashboardRoutes = [
   {
@@ -67,6 +70,14 @@ const dashboardRoutes = [
     component: Maps,
     layout: "/admin"
   },
+{
+  path: "/saldo",
+  name: "Saldo",
+  icon: "nc-icon nc-money-coins",
+  component: Saldo,
+  layout: "/admin"
+},
+
   {
     path: "/notifications",
     name: "Pengaturan",

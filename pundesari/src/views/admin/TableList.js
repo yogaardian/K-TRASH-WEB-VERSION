@@ -1,4 +1,5 @@
-import React from "react";
+
+import React, { useState } from "react";
 
 // react-bootstrap components
 import {
@@ -13,103 +14,263 @@ import {
 } from "react-bootstrap";
 
 function User() {
+
+  // tampil / sembunyi form
+  const [showForm, setShowForm] = useState(false);
+
+  // data user
+  const [users, setUsers] = useState([
+    {
+      id: "01",
+      nama: "Andi",
+      hp: "0812-3456-7890",
+      status: "Aktif",
+    },
+    {
+      id: "02",
+      nama: "Rudi",
+      hp: "0821-9876-5432",
+      status: "Offline",
+    },
+  ]);
+
+  // form input
+  const [nama, setNama] = useState("");
+  const [hp, setHp] = useState("");
+  const [status, setStatus] = useState("");
+
+  // tambah user
+  const tambahUser = () => {
+
+    if (nama === "" || hp === "" || status === "") {
+      alert("Isi semua data!");
+      return;
+    }
+
+    const nomorBaru = users.length + 1;
+
+    const userBaru = {
+      id: nomorBaru < 10 ? `0${nomorBaru}` : nomorBaru,
+      nama: nama,
+      hp: hp,
+      status: status,
+    };
+
+    setUsers([...users, userBaru]);
+
+    // reset form
+    setNama("");
+    setHp("");
+    setStatus("");
+
+    // tutup form
+    setShowForm(false);
+  };
+
+  // hapus user
+  const hapusUser = (id) => {
+    const dataBaru = users.filter((user) => user.id !== id);
+    setUsers(dataBaru);
+  };
+
   return (
     <>
       <Container fluid>
+
+        {/* Header */}
         <Row>
           <Col md="12">
             <Card>
               <Card.Body>
+
                 <Row className="align-items-center">
+
                   <Col md="8">
                     <h4 className="title">Data Petugas</h4>
-                    <p className="card-category">Total costumer = 2 orang</p>
+
+                    <p className="card-category">
+                      Total costumer = {users.length} orang
+                    </p>
                   </Col>
+
                   <Col md="4" className="text-md-right">
-                    <Button variant="success" className="btn-fill">
+
+                    <Button
+                      variant="success"
+                      className="btn-fill"
+                      onClick={() => setShowForm(true)}
+                    >
                       Tambah User
                     </Button>
+
                   </Col>
+
                 </Row>
+
               </Card.Body>
             </Card>
           </Col>
         </Row>
 
+        {/* FORM TAMBAH */}
+        {showForm && (
+
+          <Row>
+            <Col md="12">
+              <Card>
+                <Card.Body>
+
+                  <h5 className="mb-3">Tambah User</h5>
+
+                  <Row>
+
+                    <Col md="4">
+                      <Form.Group>
+                        <Form.Label>Nama</Form.Label>
+
+                        <Form.Control
+                          type="text"
+                          placeholder="Masukkan Nama"
+                          value={nama}
+                          onChange={(e) => setNama(e.target.value)}
+                        />
+                      </Form.Group>
+                    </Col>
+
+                    <Col md="4">
+                      <Form.Group>
+                        <Form.Label>No HP</Form.Label>
+
+                        <Form.Control
+                          type="text"
+                          placeholder="Masukkan No HP"
+                          value={hp}
+                          onChange={(e) => setHp(e.target.value)}
+                        />
+                      </Form.Group>
+                    </Col>
+
+                    <Col md="4">
+                      <Form.Group>
+                        <Form.Label>Status</Form.Label>
+
+                        <Form.Control
+                          type="text"
+                          placeholder="Aktif / Offline"
+                          value={status}
+                          onChange={(e) => setStatus(e.target.value)}
+                        />
+                      </Form.Group>
+                    </Col>
+
+                  </Row>
+
+                  <Button
+                    variant="success"
+                    className="mt-3 mr-2"
+                    onClick={tambahUser}
+                  >
+                    Simpan
+                  </Button>
+
+                  <Button
+                    variant="secondary"
+                    className="mt-3"
+                    onClick={() => setShowForm(false)}
+                  >
+                    Batal
+                  </Button>
+
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+
+        )}
+
+        {/* Table */}
         <Row>
           <Col md="12">
             <Card>
               <Card.Body>
+
                 <Row className="align-items-center mb-3">
+
                   <Col md="6" className="mb-2 mb-md-0">
                     <InputGroup>
-                      <Form.Control placeholder="Cari User" type="text" />
+                      <Form.Control
+                        placeholder="Cari User"
+                        type="text"
+                      />
                     </InputGroup>
                   </Col>
+
                   <Col md="6" className="text-md-right">
-                    <Button variant="outline-secondary">Filter</Button>
+                    <Button variant="outline-secondary">
+                      Filter
+                    </Button>
                   </Col>
+
                 </Row>
 
                 <div className="table-responsive">
+
                   <Table className="table-hover table-striped">
+
                     <thead>
                       <tr>
-                        <th className="border-0">ID</th>
-                        <th className="border-0">Nama</th>
-                        <th className="border-0">No HP</th>
-                        <th className="border-0">Status</th>
-                        <th className="border-0">Aksi</th>
+                        <th>ID</th>
+                        <th>Nama</th>
+                        <th>No HP</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
                       </tr>
                     </thead>
+
                     <tbody>
-                      <tr>
-                        <td>01</td>
-                        <td>Andi</td>
-                        <td>0812-3456-7890</td>
-                        <td>Aktif</td>
-                        <td>
-                          <Button
-                            variant="warning"
-                            size="sm"
-                            className="mr-2"
-                            backgroundColor="#f0ad4e"
-                          >
-                            Edit
-                          </Button>
-                          <Button variant="danger" size="sm">
-                            Hapus
-                          </Button>
-                        </td>
-                      </tr>
+
+                      {users.map((user, index) => (
+                        <tr key={index}>
+
+                          <td>{user.id}</td>
+                          <td>{user.nama}</td>
+                          <td>{user.hp}</td>
+                          <td>{user.status}</td>
+
+                          <td>
+
+                            <Button
+                              variant="warning"
+                              size="sm"
+                              className="mr-2"
+                            >
+                              Edit
+                            </Button>
+
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              onClick={() => hapusUser(user.id)}
+                            >
+                              Hapus
+                            </Button>
+
+                          </td>
+
+                        </tr>
+                      ))}
+
                     </tbody>
-                    <tbody>
-                      <tr>
-                        <td>02</td>
-                        <td>Rudi</td>
-                        <td>0821-9876-5432</td>
-                        <td>Offline</td>
-                        <td>
-                          <Button
-                            variant="warning"
-                            size="sm"
-                            className="mr-2"
-                            backgroundColor="#f0ad4e"
-                          >
-                            Edit
-                          </Button>
-                          <Button variant="danger" size="sm">
-                            Hapus
-                          </Button>
-                        </td>
-                      </tr>
-                    </tbody>
+
                   </Table>
+
                 </div>
+
               </Card.Body>
             </Card>
           </Col>
         </Row>
+
       </Container>
     </>
   );
