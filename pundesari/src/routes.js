@@ -15,14 +15,14 @@
 * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 */
-import Dashboard from "views/Dashboard.js";
-import UserProfile from "views/UserProfile.js";
-import TableList from "views/TableList.js";
-import Typography from "views/Typography.js";
-import Icons from "views/Icons.js";
-import Maps from "views/Maps.js";
-import Notifications from "views/Notifications.js";
-import Upgrade from "views/Upgrade.js";
+import Dashboard from "views/admin/Dashboard.js";
+import UserProfile from "views/admin/UserProfile.js";
+import TableList from "views/admin/TableList.js";
+import Typography from "views/admin/Typography.js";
+import Icons from "views/admin/Icons.js";
+import Maps from "views/admin/Maps.js";
+import Notifications from "views/admin/Notifications.js";
+import Upgrade from "views/admin/Upgrade.js";
 
 const dashboardRoutes = [
   {
