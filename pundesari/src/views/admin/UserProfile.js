@@ -26,9 +26,6 @@ function User() {
                     <p className="card-category">Total costumer = 1 orang</p>
                   </Col>
                   <Col md="4" className="text-md-right">
-                    <Button variant="success" className="btn-fill">
-                      Tambah User
-                    </Button>
                   </Col>
                 </Row>
               </Card.Body>
