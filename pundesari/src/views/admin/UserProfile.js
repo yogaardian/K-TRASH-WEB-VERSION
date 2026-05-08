@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 
 // react-bootstrap components
 import {
@@ -13,6 +14,22 @@ import {
 } from "react-bootstrap";
 
 function User() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/users/role/user');
+        setUsers(response.data);
+      } catch (error) {
+        console.error('Failed to fetch users:', error);
+      }
+      setLoading(false);
+    };
+    fetchUsers();
+  }, []);
+
   return (
     <>
       <Container fluid>
@@ -23,7 +40,7 @@ function User() {
                 <Row className="align-items-center">
                   <Col md="8">
                     <h4 className="title">Data Costumer</h4>
-                    <p className="card-category">Total costumer = 1 orang</p>
+                    <p className="card-category">Total costumer = {users.length} orang</p>
                   </Col>
                   <Col md="4" className="text-md-right">
                   </Col>
@@ -61,26 +78,33 @@ function User() {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr>
-                        <td>001</td>
-                        <td>Bodida</td>
-                        <td>12 Kg</td>
-                        <td>Sigunggung</td>
-                        <td>Rp 75.000</td>
-                        <td>
-                          <Button
-                            variant="warning"
-                            size="sm"
-                            className="mr-2"
-                            backgroundColor="#f0ad4e"
-                          >
-                            Edit
-                          </Button>
-                          <Button variant="danger" size="sm">
-                            Hapus
-                          </Button>
-                        </td>
-                      </tr>
+                      {loading ? (
+                        <tr><td colSpan="6" className="text-center">Memuat data...</td></tr>
+                      ) : users.length === 0 ? (
+                        <tr><td colSpan="6" className="text-center">Data Kosong</td></tr>
+                      ) : (
+                        users.map((user, index) => (
+                          <tr key={user.id}>
+                            <td>{user.id}</td>
+                            <td>{user.nama}</td>
+                            <td>-</td> {/* Placeholder, need to calculate */}
+                            <td>-</td> {/* Placeholder */}
+                            <td>-</td> {/* Placeholder */}
+                            <td>
+                              <Button
+                                variant="warning"
+                                size="sm"
+                                className="mr-2"
+                              >
+                                Edit
+                              </Button>
+                              <Button variant="danger" size="sm">
+                                Hapus
+                              </Button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </Table>
                 </div>

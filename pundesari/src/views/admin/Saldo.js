@@ -1,5 +1,6 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 
 // react-bootstrap components
 import {
@@ -18,56 +19,44 @@ function Saldo() {
   const [halaman, setHalaman] = useState(1);
 
   // data user
-  const [users, setUsers] = useState([
-    {
-      kode: "USR01",
-      nama: "Budi",
-      alamat: "Pundesari",
-      saldo: 20000,
-    },
-    {
-      kode: "USR02",
-      nama: "Siti",
-      alamat: "Malang",
-      saldo: 75000,
-    },
-    {
-      kode: "USR03",
-      nama: "Yoga",
-      alamat: "Batu",
-      saldo: 120000,
-    },
-    {
-      kode: "USR04",
-      nama: "Rina",
-      alamat: "Pujon",
-      saldo: 35000,
-    },
-    {
-      kode: "USR05",
-      nama: "Doni",
-      alamat: "Kediri",
-      saldo: 90000,
-    },
-    {
-      kode: "USR06",
-      nama: "Ayu",
-      alamat: "Blitar",
-      saldo: 150000,
-    },
-    {
-      kode: "USR07",
-      nama: "Fajar",
-      alamat: "Surabaya",
-      saldo: 80000,
-    },
-    {
-      kode: "USR08",
-      nama: "Nina",
-      alamat: "Jombang",
-      saldo: 65000,
-    },
-  ]);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch user data with wallets
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/users/role/user');
+        const usersWithBalance = await Promise.all(
+          response.data.map(async (user) => {
+            try {
+              const balanceRes = await axios.get(`http://localhost:3000/wallet/${user.id}`);
+              return {
+                kode: `USR${String(user.id).padStart(2, '0')}`,
+                id: user.id,
+                nama: user.nama,
+                alamat: "-",
+                saldo: balanceRes.data.balance || 0,
+              };
+            } catch (error) {
+              return {
+                kode: `USR${String(user.id).padStart(2, '0')}`,
+                id: user.id,
+                nama: user.nama,
+                alamat: "-",
+                saldo: 0,
+              };
+            }
+          })
+        );
+        setUsers(usersWithBalance);
+      } catch (error) {
+        console.error('Failed to fetch users:', error);
+      }
+      setLoading(false);
+    };
+    fetchUsers();
+  }, []);
 
   // form top up
   const [kodeUser, setKodeUser] = useState("");
@@ -85,33 +74,35 @@ function Saldo() {
   }, 0);
 
   // top up saldo
-  const handleTopUp = () => {
+  const handleTopUp = async () => {
 
     if (kodeUser === "" || tambahSaldo === "") {
       alert("Isi semua data!");
       return;
     }
 
-    const dataBaru = users.map((user) => {
-
-      if (user.kode === kodeUser) {
-
-        return {
+    try {
+      const user = users.find(u => u.kode === kodeUser);
+      if (user) {
+        await axios.post('http://localhost:3000/admin/add-balance', {
+          user_id: user.id,
+          amount: parseInt(tambahSaldo),
+        });
+        
+        // Refresh data
+        const updatedUser = {
           ...user,
           saldo: user.saldo + parseInt(tambahSaldo),
         };
-
+        setUsers(users.map(u => u.id === user.id ? updatedUser : u));
+        setKodeUser("");
+        setTambahSaldo("");
+        alert("Top Up Berhasil");
       }
-
-      return user;
-    });
-
-    setUsers(dataBaru);
-
-    setKodeUser("");
-    setTambahSaldo("");
-
-    alert("Top Up Berhasil");
+    } catch (error) {
+      console.error('Failed to add balance:', error);
+      alert("Gagal menambah saldo");
+    }
   };
 
   return (
@@ -165,28 +156,31 @@ function Saldo() {
                       </thead>
 
                       <tbody>
+                        {loading ? (
+                          <tr><td colSpan="5" className="text-center">Memuat data...</td></tr>
+                        ) : users.length === 0 ? (
+                          <tr><td colSpan="5" className="text-center">Data Kosong</td></tr>
+                        ) : (
+                          users.map((user, index) => (
+                            <tr key={user.id}>
 
-                        {users.map((user, index) => (
+                              <td>{user.kode}</td>
+                              <td>{user.nama}</td>
+                              <td>{user.alamat}</td>
 
-                          <tr key={index}>
+                              <td>
+                                Rp {user.saldo.toLocaleString()}
+                              </td>
 
-                            <td>{user.kode}</td>
-                            <td>{user.nama}</td>
-                            <td>{user.alamat}</td>
+                              <td>
+                                {user.saldo < 50000
+                                  ? "Mengendap"
+                                  : "Sebagian Bisa Diambil"}
+                              </td>
 
-                            <td>
-                              Rp {user.saldo.toLocaleString()}
-                            </td>
-
-                            <td>
-                              {user.saldo < 50000
-                                ? "Mengendap"
-                                : "Sebagian Bisa Diambil"}
-                            </td>
-
-                          </tr>
-
-                        ))}
+                            </tr>
+                          ))
+                        )}
 
                       </tbody>
 

@@ -13,7 +13,7 @@ import {
   Modal,
 } from "react-bootstrap";
 
-function GarbageManagement() {
+function Typography() {
   const [garbageData, setGarbageData] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -35,9 +35,14 @@ function GarbageManagement() {
     setLoading(true);
     try {
       const response = await axios.get(`${API_URL}/harga/${currentJenis}`);
-      setGarbageData(response.data);
+      if (Array.isArray(response.data)) {
+        setGarbageData(response.data);
+      } else {
+        setGarbageData([]);
+      }
     } catch (error) {
       console.error("Gagal mengambil data:", error);
+      setGarbageData([]);
     }
     setLoading(false);
   };
@@ -48,21 +53,28 @@ function GarbageManagement() {
 
   // 2. Fungsi Simpan (Tambah/Edit)
   const handleSave = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) {
+      e.preventDefault();
+    }
     try {
+      const data = {
+        jenis: formData.jenis,
+        nama: formData.nama,
+        harga: formData.harga,
+      };
       if (formData.id) {
-        // Logika Update (PATCH)
-        await axios.patch(`${API_URL}/admin/harga/${formData.id}`, formData);
+        // Update
+        await axios.put(`${API_URL}/harga/${formData.id}`, data);
       } else {
-        // Logika Simpan Baru (POST)
-        await axios.post(`${API_URL}/admin/harga`, formData);
+        // Add new
+        await axios.post(`${API_URL}/harga`, data);
       }
       setShowModal(false);
       fetchData();
       alert("Data berhasil diproses!");
     } catch (error) {
       console.error(error);
-      alert("Terjadi kesalahan pada server. Pastikan API CORS sudah aktif.");
+      alert("Terjadi kesalahan pada server.");
     }
   };
 
@@ -70,7 +82,7 @@ function GarbageManagement() {
   const handleDelete = async (id) => {
     if (window.confirm("Hapus jenis sampah ini?")) {
       try {
-        await axios.delete(`${API_URL}/admin/harga/${id}`);
+        await axios.delete(`${API_URL}/harga/${id}`);
         fetchData();
       } catch (error) {
         console.error("Gagal menghapus:", error);
@@ -184,57 +196,60 @@ function GarbageManagement() {
       </Container>
 
       {/* MODAL FORM TAMBAH/EDIT */}
-      <Modal show={showModal} onHide={() => setShowModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>{formData.id ? "Edit Data" : "Tambah Data"} Sampah</Modal.Title>
-        </Modal.Header>
-        <Form onSubmit={handleSave}>
+      {showModal && (
+        <Modal show={showModal} onHide={() => setShowModal(false)} centered backdrop="static">
+          <Modal.Header closeButton>
+            <Modal.Title>
+              {formData.id ? "Edit Data" : "Tambah Data"} Sampah
+            </Modal.Title>
+          </Modal.Header>
           <Modal.Body>
-            <Form.Group className="mb-3">
-              <Form.Label>Kategori</Form.Label>
-              <Form.Control
-                as="select"
-                value={formData.jenis}
-                onChange={(e) => setFormData({ ...formData, jenis: e.target.value })}
-              >
-                <option value="anorganik">Anorganik</option>
-                <option value="organik">Organik</option>
-                <option value="elektronik">Elektronik</option>
-              </Form.Control>
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Nama Jenis Sampah</Form.Label>
-              <Form.Control
-                placeholder="Contoh: Botol Plastik PET"
-                type="text"
-                required
-                value={formData.nama}
-                onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Harga per Kg (Rp)</Form.Label>
-              <Form.Control
-                placeholder="Contoh: 4000"
-                type="number"
-                required
-                value={formData.harga}
-                onChange={(e) => setFormData({ ...formData, harga: e.target.value })}
-              />
-            </Form.Group>
+            <Form>
+              <Form.Group className="mb-3">
+                <Form.Label>Kategori</Form.Label>
+                <Form.Select 
+                  value={formData.jenis}
+                  onChange={(e) => setFormData({ ...formData, jenis: e.target.value })}
+                >
+                  <option value="anorganik">Anorganik</option>
+                  <option value="organik">Organik</option>
+                  <option value="elektronik">Elektronik</option>
+                </Form.Select>
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Nama Jenis Sampah</Form.Label>
+                <Form.Control
+                  placeholder="Contoh: Botol Plastik PET"
+                  type="text"
+                  required
+                  value={formData.nama}
+                  onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
+                />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Harga per Kg (Rp)</Form.Label>
+                <Form.Control
+                  placeholder="Contoh: 4000"
+                  type="number"
+                  required
+                  value={formData.harga}
+                  onChange={(e) => setFormData({ ...formData, harga: e.target.value })}
+                />
+              </Form.Group>
+            </Form>
           </Modal.Body>
           <Modal.Footer>
             <Button variant="secondary" onClick={() => setShowModal(false)}>
               Batal
             </Button>
-            <Button variant="primary" type="submit" className="btn-fill">
+            <Button variant="primary" className="btn-fill" onClick={handleSave}>
               Simpan Data
             </Button>
           </Modal.Footer>
-        </Form>
-      </Modal>
+        </Modal>
+      )}
     </>
   );
 }
 
-export default GarbageManagement;
+export default Typography;

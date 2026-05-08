@@ -1,9 +1,26 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 
 // react-bootstrap components
 import { Button, Card, Container, Row, Col, Form, InputGroup, Table } from "react-bootstrap";
 
 function Icons() {
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/transactions');
+        setTransactions(response.data);
+      } catch (error) {
+        console.error('Failed to fetch transactions:', error);
+      }
+      setLoading(false);
+    };
+    fetchTransactions();
+  }, []);
+
   return (
     <>
       <Container fluid>
@@ -43,36 +60,29 @@ function Icons() {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr>
-                        <td>05/04</td>
-                        <td>001</td>
-                        <td>Bodida</td>
-                        <td>3 Kg</td>
-                        <td>Rp 5.000</td>
-                        <td>
-                          <Button variant="success" size="sm" className="mr-2">
-                            Detail
-                          </Button>
-                          <Button variant="danger" size="sm">
-                            Hapus
-                          </Button>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>06/04</td>
-                        <td>002</td>
-                        <td>Siti</td>
-                        <td>2 Kg</td>
-                        <td>Rp 3.000</td>
-                        <td>
-                          <Button variant="success" size="sm" className="mr-2">
-                            Detail
-                          </Button>
-                          <Button variant="danger" size="sm">
-                            Hapus
-                          </Button>
-                        </td>
-                      </tr>
+                      {loading ? (
+                        <tr><td colSpan="6" className="text-center">Memuat data...</td></tr>
+                      ) : transactions.length === 0 ? (
+                        <tr><td colSpan="6" className="text-center">Data Kosong</td></tr>
+                      ) : (
+                        transactions.map((tx, index) => (
+                          <tr key={tx.id}>
+                            <td>{new Date(tx.created_at).toLocaleDateString()}</td>
+                            <td>{tx.user_id}</td>
+                            <td>{tx.user_name}</td>
+                            <td>-</td> {/* Placeholder */}
+                            <td>Rp {tx.amount ? tx.amount.toLocaleString() : 0}</td>
+                            <td>
+                              <Button variant="success" size="sm" className="mr-2">
+                                Detail
+                              </Button>
+                              <Button variant="danger" size="sm">
+                                Hapus
+                              </Button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </Table>
                 </div>

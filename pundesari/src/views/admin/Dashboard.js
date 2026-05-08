@@ -11,12 +11,18 @@ import {
 
 function Dashboard() {
   const [totalOrders, setTotalOrders] = useState(0);
+  const [totalPetugas, setTotalPetugas] = useState(0);
+  const [totalSampah, setTotalSampah] = useState(0);
+  const [riwayat, setRiwayat] = useState(0);
 
   useEffect(() => {
-    // Fetch pending orders as an example statistic
-    axios.get("http://localhost:3000/orders/pending")
+    // Fetch dashboard stats
+    axios.get("http://localhost:3000/stats/dashboard")
       .then(res => {
-        setTotalOrders(res.data.length);
+        setTotalOrders(res.data.totalOrders);
+        setTotalPetugas(res.data.totalPetugas);
+        setTotalSampah(res.data.totalSampah);
+        setRiwayat(res.data.riwayat);
       })
       .catch(err => console.error(err));
   }, []);
@@ -63,7 +69,7 @@ function Dashboard() {
                   <Col xs="7">
                     <div className="numbers">
                       <p className="card-category">Total Petugas</p>
-                      <Card.Title as="h4">2 orang</Card.Title>
+                      <Card.Title as="h4">{totalPetugas} orang</Card.Title>
                     </div>
                   </Col>
                 </Row>
@@ -89,7 +95,7 @@ function Dashboard() {
                   <Col xs="7">
                     <div className="numbers">
                       <p className="card-category">Total Sampah</p>
-                      <Card.Title as="h4">60 KG</Card.Title>
+                      <Card.Title as="h4">{totalSampah}</Card.Title>
                     </div>
                   </Col>
                 </Row>
@@ -115,7 +121,7 @@ function Dashboard() {
                   <Col xs="7">
                     <div className="numbers">
                       <p className="card-category">Riwayat</p>
-                      <Card.Title as="h4">12</Card.Title>
+                      <Card.Title as="h4">{riwayat}</Card.Title>
                     </div>
                   </Col>
                 </Row>

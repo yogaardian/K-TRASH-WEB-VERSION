@@ -69,6 +69,45 @@ async function seedDefaultAccounts() {
       console.error('Seed error for user', u.email, err);
     }
   }
+
+  // Create harga_sampah table if not exists
+  try {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS harga_sampah (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        jenis VARCHAR(50) NOT NULL,
+        nama VARCHAR(100) NOT NULL,
+        harga INT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
+    
+    // Seed initial data if table is empty
+    const [existing] = await db.query('SELECT COUNT(*) as count FROM harga_sampah');
+    if (existing[0].count === 0) {
+      const initialData = [
+        { jenis: 'anorganik', nama: 'Botol Plastik PET', harga: 4000 },
+        { jenis: 'anorganik', nama: 'Kardus', harga: 2000 },
+        { jenis: 'anorganik', nama: 'Besi', harga: 5000 },
+        { jenis: 'anorganik', nama: 'Kaleng', harga: 4500 },
+        { jenis: 'organik', nama: 'Daun', harga: 500 },
+        { jenis: 'organik', nama: 'Sisa Makanan', harga: 300 },
+        { jenis: 'elektronik', nama: 'Kabel Bekas', harga: 2000 },
+        { jenis: 'elektronik', nama: 'Charger Bekas', harga: 1500 },
+      ];
+      
+      for (const item of initialData) {
+        await db.query(
+          'INSERT INTO harga_sampah (jenis, nama, harga) VALUES (?, ?, ?)',
+          [item.jenis, item.nama, item.harga]
+        );
+      }
+      console.log('Seeded harga_sampah table with initial data');
+    }
+  } catch (err) {
+    console.error('Error creating harga_sampah table:', err);
+  }
 }
 
 // ================= BASIC =================
@@ -215,6 +254,128 @@ app.get('/harga/:jenis/:sub', async (req, res) => {
   }
 });
 
+// POST /harga - Add new waste type
+app.post('/harga', async (req, res) => {
+  try {
+    const { jenis, nama, harga } = req.body;
+
+    if (!jenis || !nama || harga == null) {
+      return res.status(400).json({ status: 'fail', message: 'jenis, nama, harga wajib diisi' });
+    }
+
+    await db.query(
+      'INSERT INTO harga_sampah (jenis, nama, harga) VALUES (?, ?, ?)',
+      [jenis, nama, harga],
+    );
+
+    res.json({ status: 'success' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+// PUT /harga/:id - Update waste type
+app.put('/harga/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { jenis, nama, harga } = req.body;
+
+    if (!jenis || !nama || harga == null) {
+      return res.status(400).json({ status: 'fail', message: 'jenis, nama, harga wajib diisi' });
+    }
+
+    const [result] = await db.query(
+      'UPDATE harga_sampah SET jenis = ?, nama = ?, harga = ? WHERE id = ?',
+      [jenis, nama, harga, id],
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ status: 'fail', message: 'Harga sampah tidak ditemukan' });
+    }
+
+    res.json({ status: 'success' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+// DELETE /harga/:id - Delete waste type
+app.delete('/harga/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    const [result] = await db.query(
+      'DELETE FROM harga_sampah WHERE id = ?',
+      [id],
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ status: 'fail', message: 'Harga sampah tidak ditemukan' });
+    }
+
+    res.json({ status: 'success' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+// ================= USERS =================
+app.get('/users/role/:role', async (req, res) => {
+  try {
+    const role = req.params.role;
+
+    const [result] = await db.query(
+      'SELECT id, nama, email, nomor_hp FROM users WHERE role = ?',
+      [role],
+    );
+
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+// ================= STATS =================
+app.get('/stats/dashboard', async (req, res) => {
+  try {
+    // Total active orders (pending + assigned + on_the_way + arrived)
+    const [activeOrders] = await db.query(
+      "SELECT COUNT(*) as total FROM orders WHERE status IN ('pending', 'assigned', 'on_the_way', 'arrived')"
+    );
+
+    // Total petugas (drivers)
+    const [totalPetugas] = await db.query(
+      "SELECT COUNT(*) as total FROM users WHERE role = 'driver'"
+    );
+
+    // Total sampah (sum of berat from completed orders or something, but since no berat, maybe count completed orders)
+    // Assuming we need total weight, but since not stored, perhaps sum from transactions or estimate
+    // For now, let's say total completed orders as "total sampah"
+    const [totalSampah] = await db.query(
+      "SELECT COUNT(*) as total FROM orders WHERE status = 'completed'"
+    );
+
+    // Riwayat (total completed orders)
+    const [riwayat] = await db.query(
+      "SELECT COUNT(*) as total FROM orders WHERE status = 'completed'"
+    );
+
+    res.json({
+      totalOrders: activeOrders[0].total,
+      totalPetugas: totalPetugas[0].total,
+      totalSampah: totalSampah[0].total, // placeholder
+      riwayat: riwayat[0].total,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
 // ================= CREATE ORDER =================
 app.post('/orders', async (req, res) => {
   try {
@@ -238,7 +399,7 @@ app.post('/orders', async (req, res) => {
 app.get('/orders/pending', async (req, res) => {
   try {
     const [rows] = await db.query(
-      "SELECT * FROM orders WHERE status = 'pending'"
+      "SELECT o.*, u.nama as user_name FROM orders o JOIN users u ON o.user_id = u.id WHERE o.status = 'pending'"
     );
     res.json(rows);
   } catch (err) {
@@ -518,6 +679,23 @@ app.post('/withdraw', async (req, res) => {
     res.status(500).json({ status: 'error', message: err.message });
   } finally {
     if (connection) connection.release();
+  }
+});
+
+// ================= TRANSACTIONS =================
+app.get('/transactions', async (req, res) => {
+  try {
+    const [result] = await db.query(`
+      SELECT t.*, u.nama as user_name
+      FROM transactions t
+      JOIN users u ON t.user_id = u.id
+      ORDER BY t.created_at DESC
+    `);
+
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ status: 'error', message: err.message });
   }
 });
 

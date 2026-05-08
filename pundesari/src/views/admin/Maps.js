@@ -1,69 +1,33 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 
 // react-bootstrap components
 import { Badge, Button, Card, Container, Row, Col, Form, InputGroup, Table } from "react-bootstrap";
 
 function Maps() {
-  const [searchTerm, setSearchTerm] = React.useState("");
+  const [confirmationData, setConfirmationData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const confirmationData = [
-    {
-      id: 1,
-      nama: "Bodida",
-      jenisSampah: "PET",
-      berat: "3 Kg",
-      totalHarga: "Rp 12.000",
-      status: "Pending",
-    },
-    {
-      id: 2,
-      nama: "Hasan",
-      jenisSampah: "Kardus",
-      berat: "5 Kg",
-      totalHarga: "Rp 10.000",
-      status: "Pending",
-    },
-    {
-      id: 3,
-      nama: "Triana",
-      jenisSampah: "Kertas",
-      berat: "2 Kg",
-      totalHarga: "Rp 4.000",
-      status: "Disetujui",
-    },
-    {
-      id: 4,
-      nama: "Umar",
-      jenisSampah: "Besi",
-      berat: "7 Kg",
-      totalHarga: "Rp 17.500",
-      status: "Pending",
-    },
-    {
-      id: 5,
-      nama: "Asep Budi",
-      jenisSampah: "Kaleng",
-      berat: "1 Kg",
-      totalHarga: "Rp 4.000",
-      status: "Pending",
-    },
-    {
-      id: 6,
-      nama: "Sinta",
-      jenisSampah: "PP",
-      berat: "3 Kg",
-      totalHarga: "Rp 8.000",
-      status: "Disetujui",
-    },
-    {
-      id: 7,
-      nama: "Umar",
-      jenisSampah: "Besi",
-      berat: "4 Kg",
-      totalHarga: "Rp 14.000",
-      status: "Pending",
-    },
-  ];
+  useEffect(() => {
+    const fetchPendingOrders = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/orders/pending');
+        setConfirmationData(response.data.map(order => ({
+          id: order.id,
+          nama: order.user_name,
+          jenisSampah: order.jenis_sampah,
+          berat: "-", // Placeholder
+          totalHarga: "-", // Placeholder
+          status: "Pending",
+        })));
+      } catch (error) {
+        console.error('Failed to fetch orders:', error);
+      }
+      setLoading(false);
+    };
+    fetchPendingOrders();
+  }, []);
 
   const getStatusBadge = (status) => {
     if (status === "Pending") {
@@ -109,52 +73,58 @@ function Maps() {
                       </tr>
                     </thead>
                     <tbody>
-                      {confirmationData.map((data) => (
-                        <tr key={data.id}>
-                          <td>
-                            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                              <div
-                                style={{
-                                  width: "32px",
-                                  height: "32px",
-                                  borderRadius: "50%",
-                                  backgroundColor: "#ddd",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  color: "#666",
-                                  fontSize: "12px",
-                                  fontWeight: "bold",
-                                }}
-                              >
-                                {data.nama.charAt(0)}
+                      {loading ? (
+                        <tr><td colSpan="6" className="text-center">Memuat data...</td></tr>
+                      ) : confirmationData.length === 0 ? (
+                        <tr><td colSpan="6" className="text-center">Data Kosong</td></tr>
+                      ) : (
+                        confirmationData.map((data) => (
+                          <tr key={data.id}>
+                            <td>
+                              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                <div
+                                  style={{
+                                    width: "32px",
+                                    height: "32px",
+                                    borderRadius: "50%",
+                                    backgroundColor: "#ddd",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    color: "#666",
+                                    fontSize: "12px",
+                                    fontWeight: "bold",
+                                  }}
+                                >
+                                  {data.nama.charAt(0)}
+                                </div>
+                                {data.nama}
                               </div>
-                              {data.nama}
-                            </div>
-                          </td>
-                          <td>{data.jenisSampah}</td>
-                          <td>{data.berat}</td>
-                          <td>{data.totalHarga}</td>
-                          <td>{getStatusBadge(data.status)}</td>
-                          <td>
-                            {data.status === "Pending" && (
-                              <>
-                                <Button variant="success" size="sm" className="mr-2">
-                                  Setujui
-                                </Button>
+                            </td>
+                            <td>{data.jenisSampah}</td>
+                            <td>{data.berat}</td>
+                            <td>{data.totalHarga}</td>
+                            <td>{getStatusBadge(data.status)}</td>
+                            <td>
+                              {data.status === "Pending" && (
+                                <>
+                                  <Button variant="success" size="sm" className="mr-2">
+                                    Setujui
+                                  </Button>
+                                  <Button variant="danger" size="sm">
+                                    Tolak
+                                  </Button>
+                                </>
+                              )}
+                              {data.status === "Disetujui" && (
                                 <Button variant="danger" size="sm">
                                   Tolak
                                 </Button>
-                              </>
-                            )}
-                            {data.status === "Disetujui" && (
-                              <Button variant="danger" size="sm">
-                                Tolak
-                              </Button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </Table>
                 </div>

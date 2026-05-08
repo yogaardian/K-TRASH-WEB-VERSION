@@ -1,5 +1,6 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 
 // react-bootstrap components
 import {
@@ -15,24 +16,30 @@ import {
 
 function User() {
 
+  // data user
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDrivers = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/users/role/driver');
+        setUsers(response.data.map(user => ({
+          id: user.id,
+          nama: user.nama,
+          hp: user.nomor_hp,
+          status: "Aktif", // Placeholder
+        })));
+      } catch (error) {
+        console.error('Failed to fetch drivers:', error);
+      }
+      setLoading(false);
+    };
+    fetchDrivers();
+  }, []);
+
   // tampil / sembunyi form
   const [showForm, setShowForm] = useState(false);
-
-  // data user
-  const [users, setUsers] = useState([
-    {
-      id: "01",
-      nama: "Andi",
-      hp: "0812-3456-7890",
-      status: "Aktif",
-    },
-    {
-      id: "02",
-      nama: "Rudi",
-      hp: "0821-9876-5432",
-      status: "Offline",
-    },
-  ]);
 
   // form input
   const [nama, setNama] = useState("");
@@ -229,18 +236,23 @@ function User() {
 
                     <tbody>
 
-                      {users.map((user, index) => (
-                        <tr key={index}>
+                      {loading ? (
+                        <tr><td colSpan="5" className="text-center">Memuat data...</td></tr>
+                      ) : users.length === 0 ? (
+                        <tr><td colSpan="5" className="text-center">Data Kosong</td></tr>
+                      ) : (
+                        users.map((user, index) => (
+                          <tr key={user.id}>
 
-                          <td>{user.id}</td>
-                          <td>{user.nama}</td>
-                          <td>{user.hp}</td>
-                          <td>{user.status}</td>
+                            <td>{user.id}</td>
+                            <td>{user.nama}</td>
+                            <td>{user.hp}</td>
+                            <td>{user.status}</td>
 
-                          <td>
+                            <td>
 
-                            <Button
-                              variant="warning"
+                              <Button
+                                variant="warning"
                               size="sm"
                               className="mr-2"
                             >
@@ -258,7 +270,8 @@ function User() {
                           </td>
 
                         </tr>
-                      ))}
+                      ))
+                      )}
 
                     </tbody>
 
