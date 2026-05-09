@@ -1,12 +1,17 @@
 import React, { useState } from "react";
-import { useHistory, Link } from "react-router-dom";
+import { useHistory } from "react-router-dom";
 import axios from "axios";
-import { Container, Row, Col, Card, Form, Button } from "react-bootstrap";
+import "./css/login.css";
+import Logo from "../assets/LogoK-Trash.png";
+import BgImage from "../assets/Bgregister.png";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const history = useHistory();
 
   const handleLogin = async (e) => {
@@ -18,33 +23,31 @@ function Login() {
       return;
     }
 
+    setLoading(true);
     try {
       // Mengirim request ke backend
-      const response = await axios.post("/login", {
+      const response = await axios.post("http://localhost:5000/login", {
         email: email,
         password: password,
       });
 
       if (response.data.status === "success") {
-        // 1. Simpan data sesi ke LocalStorage agar bisa diakses dashboard tujuan
+        // 1. Simpan data sesi ke LocalStorage
         localStorage.setItem("isLogin", "true");
         localStorage.setItem("nama", response.data.nama);
-        localStorage.setItem("role", response.data.role); // 'admin', 'petugas', atau 'user'
+        localStorage.setItem("role", response.data.role);
         localStorage.setItem("userId", response.data.id);
 
-        // 2. Logika Pengalihan (Redirect) berdasarkan Role
+        // 2. Logika Pengalihan berdasarkan Role
         const userRole = response.data.role;
 
         if (userRole === "admin") {
-          // Mengarah ke Admin Dashboard [source: 2]
           history.push("/admin/dashboard");
         } 
         else if (userRole === "petugas") {
-          // Mengarah ke Driver/Petugas Dashboard [source: 4]
           history.push("/driver/dashboard");
         } 
         else if (userRole === "user") {
-          // Mengarah ke User Dashboard [source: 3]
           history.push("/user/dashboard");
         } 
         else {
@@ -56,97 +59,135 @@ function Login() {
     } catch (err) {
       console.error(err);
       setError("Terjadi kesalahan pada server atau koneksi terputus.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div style={{ 
-      minHeight: "100vh", 
-      display: "flex", 
-      alignItems: "center", 
-      background: "linear-gradient(rgba(255, 255, 255, 0.85), rgba(76, 175, 80, 0.2))",
-      fontFamily: "'Inter', sans-serif" 
-    }}>
-      <Container>
-        <Row className="justify-content-center">
-          <Col md="5" lg="4">
-            <div className="text-center mb-4">
-              <img src="/LogoK-Trash.png" alt="K-Trash Logo" style={{ height: "120px" }} />
-            </div>
-            <Card className="card-user" style={{ borderRadius: "25px", boxShadow: "0 10px 20px rgba(0,0,0,0.1)", border: "none" }}>
-              <Card.Body className="p-4">
-                <div className="text-center mb-4">
-                  <h4 style={{ color: "#2E7D32", fontWeight: "bold", marginBottom: "5px" }}>Selamat Datang! 🌿</h4>
-                  <p className="text-muted" style={{ fontSize: "14px" }}>Masuk untuk melanjutkan ke K-Trash Web</p>
-                </div>
-                
-                {error && <div className="alert alert-danger" style={{ borderRadius: "15px", fontSize: "14px" }}>{error}</div>}
+    <div
+      className="login-page"
+      style={{
+        backgroundImage: `url(${BgImage})`,
+      }}
+    >
+      {/* OVERLAY */}
+      <div className="overlay"></div>
 
-                <Form onSubmit={handleLogin}>
-                  <Form.Group className="mb-3">
-                    <div className="input-group">
-                      <div className="input-group-prepend">
-                        <span className="input-group-text" style={{ borderRadius: "20px 0 0 20px", backgroundColor: "rgba(76, 175, 80, 0.08)", border: "1px solid rgba(76, 175, 80, 0.2)", borderRight: "none" }}>
-                          <i className="nc-icon nc-single-02" style={{ color: "#2E7D32" }}></i>
-                        </span>
-                      </div>
-                      <Form.Control
-                        placeholder="Username / Email"
-                        type="text"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        style={{ borderRadius: "0 20px 20px 0", backgroundColor: "rgba(76, 175, 80, 0.08)", border: "1px solid rgba(76, 175, 80, 0.2)", borderLeft: "none", paddingLeft: "0" }}
-                      />
-                    </div>
-                  </Form.Group>
-                  <Form.Group className="mb-3">
-                    <div className="input-group">
-                      <div className="input-group-prepend">
-                        <span className="input-group-text" style={{ borderRadius: "20px 0 0 20px", backgroundColor: "rgba(76, 175, 80, 0.08)", border: "1px solid rgba(76, 175, 80, 0.2)", borderRight: "none" }}>
-                          <i className="nc-icon nc-key-25" style={{ color: "#2E7D32" }}></i>
-                        </span>
-                      </div>
-                      <Form.Control
-                        placeholder="Password"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        style={{ borderRadius: "0 20px 20px 0", backgroundColor: "rgba(76, 175, 80, 0.08)", border: "1px solid rgba(76, 175, 80, 0.2)", borderLeft: "none", paddingLeft: "0" }}
-                      />
-                    </div>
-                  </Form.Group>
-                  <div className="text-right mb-4">
-                    <a href="#pablo" onClick={(e) => {e.preventDefault(); alert('Fitur lupa password akan segera hadir');}} style={{ color: "#2E7D32", fontSize: "13px", textDecoration: "none", fontWeight: "500" }}>
-                      Lupa password?
-                    </a>
-                  </div>
-                  <Button
-                    className="btn-fill w-100"
-                    type="submit"
-                    style={{ 
-                      borderRadius: "25px", 
-                      background: "linear-gradient(to right, #8BC34A, #2E7D32)", 
-                      border: "none",
-                      padding: "12px",
-                      fontWeight: "bold",
-                      fontSize: "16px",
-                      boxShadow: "0 4px 6px rgba(46, 125, 50, 0.2)"
-                    }}
-                  >
-                    Masuk <i className="nc-icon nc-minimal-right ml-2"></i>
-                  </Button>
-                </Form>
-              </Card.Body>
-            </Card>
-            <div className="text-center mt-4">
-              <p className="text-muted" style={{ fontSize: "13px", fontWeight: "500" }}>
-                <i className="nc-icon nc-check-2 text-success" style={{ marginRight: "5px" }}></i>
-                Aman, Terpercaya, dan Ramah Lingkungan
-              </p>
+      {/* TOP NAVBAR */}
+      <div className="top-navbar">
+        <div className="logo-wrapper">
+          <img src={Logo} alt="logo" className="logo-img" />
+          <h1 className="logo-text">K-Trash</h1>
+        </div>
+
+        <div className="auth-switch">
+          <button className="login-switch active">
+            Login
+          </button>
+          <button
+            className="register-switch"
+            onClick={() => history.push("/Register")}
+          >
+            Daftar
+          </button>
+        </div>
+      </div>
+
+      {/* LOGIN CARD */}
+      <div className="login-container">
+        <div className="login-card">
+          {/* TITLE */}
+          <h1 className="login-title">
+            <span>Selamat Datang</span>
+          </h1>
+
+          <p className="login-subtitle">
+            Masuk ke akun K-Trash Anda dan mulai
+            kelola sampah dengan lebih mudah.
+          </p>
+
+          {/* ERROR MESSAGE */}
+          {error && (
+            <div className="alert-error" style={{
+              backgroundColor: "#fee",
+              color: "#c33",
+              padding: "12px 16px",
+              borderRadius: "8px",
+              marginBottom: "16px",
+              fontSize: "14px"
+            }}>
+              {error}
             </div>
-          </Col>
-        </Row>
-      </Container>
+          )}
+
+          {/* FORM */}
+          <form className="login-form" onSubmit={handleLogin}>
+            {/* EMAIL */}
+            <div className="input-group">
+              <Mail size={20} className="input-icon" />
+              <input
+                type="email"
+                placeholder="Masukkan Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+
+            {/* PASSWORD */}
+            <div className="input-group">
+              <Lock size={20} className="input-icon" />
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Masukkan Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+
+              <button
+                type="button"
+                className="eye-button"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? (
+                  <EyeOff size={20} />
+                ) : (
+                  <Eye size={20} />
+                )}
+              </button>
+            </div>
+
+            {/* REMEMBER */}
+            <div className="login-options">
+              <label className="remember-me">
+                <input type="checkbox" />
+                Ingat Saya
+              </label>
+
+              <span className="forgot-password">
+                Lupa Password?
+              </span>
+            </div>
+
+            {/* BUTTON */}
+            <button 
+              className="login-submit-btn" 
+              type="submit"
+              disabled={loading}
+            >
+              {loading ? "Memuat..." : "Masuk Sekarang"}
+            </button>
+
+            {/* REGISTER */}
+            <div className="bottom-register">
+              Belum punya akun?
+              <span onClick={() => history.push("/Register")} style={{ cursor: 'pointer' }}>
+                {" "}Daftar Sekarang
+              </span>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }

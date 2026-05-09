@@ -22,7 +22,10 @@ function OrderDetail() {
       });
       if (response.data.status === "success") {
         alert("Order Berhasil Diterima!");
-        history.push("/driver/dashboard"); // We return to dashboard where the active order will now show up
+        const acceptedOrder = { ...order, status: "assigned", driver_id: parseInt(driverId) };
+        sessionStorage.setItem("tracking_order", JSON.stringify(acceptedOrder));+
+        sessionStorage.setItem("current_order_id", order.id);
+        history.push("/driver/tracking-user", { order: acceptedOrder });
       } else {
         alert(response.data.message || "Gagal menerima order");
       }

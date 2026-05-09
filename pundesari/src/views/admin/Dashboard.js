@@ -1,37 +1,144 @@
 import React, { useState, useEffect } from "react";
 import ChartistGraph from "react-chartist";
-import axios from "axios";
 // react-bootstrap components
 import {
   Card,
   Container,
   Row,
   Col,
+  Badge,
+  Spinner,
+  Alert,
 } from "react-bootstrap";
+import { dashboardAPI } from "../../services/api";
 
 function Dashboard() {
-  const [totalOrders, setTotalOrders] = useState(0);
-  const [totalPetugas, setTotalPetugas] = useState(0);
-  const [totalSampah, setTotalSampah] = useState(0);
-  const [riwayat, setRiwayat] = useState(0);
+  // Dashboard Stats
+  const [stats, setStats] = useState({
+    totalOrders: 0,
+    totalPetugas: 0,
+    totalSampah: 0,
+    riwayat: 0,
+  });
+  
+  // Total Users (all roles)
+  const [totalUsers, setTotalUsers] = useState(0);
+  
+  // Daily Transactions
+  const [dailyTransactions, setDailyTransactions] = useState(0);
+
+  // Recent Activities
+  const [aktivitas, setAktivitas] = useState([]);
+  const [pendingOrders, setPendingOrders] = useState([]);
+  
+  // Loading & Error States
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch all data
+  useEffect(() => {
+    const fetchAllData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Fetch dashboard stats
+        const statsRes = await dashboardAPI.getAdminStats();
+        setStats(statsRes.data);
+
+        // Fetch total users
+        const usersRes = await dashboardAPI.getTotalUsers();
+        setTotalUsers(usersRes.data.totalUsers);
+
+        // Fetch daily transactions
+        const dailyRes = await dashboardAPI.getDailyTransactions();
+        setDailyTransactions(dailyRes.data.dailyTransactions);
+
+        // Fetch recent orders
+        const recentRes = await dashboardAPI.getRecentOrders();
+        setAktivitas(recentRes.data.slice(0, 5));
+
+        // Fetch pending orders
+        const pendingRes = await dashboardAPI.getPendingOrders();
+        setPendingOrders(pendingRes.data.slice(0, 5));
+
+        setIsLoading(false);
+      } catch (err) {
+        console.error("Error fetching dashboard data:", err);
+        setError(err.message || "Gagal memuat data dashboard");
+        setIsLoading(false);
+      }
+    };
+
+    fetchAllData();
+    
+    // Refresh data every 30 seconds
+    const interval = setInterval(fetchAllData, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
-    // Fetch dashboard stats
-    axios.get("http://localhost:3000/stats/dashboard")
-      .then(res => {
-        setTotalOrders(res.data.totalOrders);
-        setTotalPetugas(res.data.totalPetugas);
-        setTotalSampah(res.data.totalSampah);
-        setRiwayat(res.data.riwayat);
-      })
-      .catch(err => console.error(err));
+    let timeoutId;
+
+    const scheduleMidnightRefresh = () => {
+      const now = new Date();
+      const nextMidnight = new Date(now);
+      nextMidnight.setHours(24, 0, 0, 0);
+      const delay = nextMidnight.getTime() - now.getTime();
+
+      timeoutId = setTimeout(async () => {
+        try {
+          const dailyRes = await dashboardAPI.getDailyTransactions();
+          setDailyTransactions(dailyRes.data.dailyTransactions);
+        } catch (err) {
+          console.error("Error refreshing daily transactions at midnight:", err);
+        }
+        scheduleMidnightRefresh();
+      }, delay);
+    };
+
+    scheduleMidnightRefresh();
+    return () => clearTimeout(timeoutId);
   }, []);
+
+  // Helper function for status badge
+  const getStatusBadge = (status) => {
+    const statusConfig = {
+      pending: { bg: "warning", text: "Menunggu" },
+      assigned: { bg: "info", text: "Ditugaskan" },
+      on_the_way: { bg: "primary", text: "Dalam Perjalanan" },
+      arrived: { bg: "secondary", text: "Tiba" },
+      completed: { bg: "success", text: "Selesai" },
+      approved: { bg: "success", text: "Disetujui" },
+      rejected: { bg: "danger", text: "Ditolak" },
+    };
+    const config = statusConfig[status] || { bg: "secondary", text: status };
+    return <Badge bg={config.bg}>{config.text}</Badge>;
+  };
+
+  if (isLoading) {
+    return (
+      <Container fluid className="d-flex justify-content-center align-items-center" style={{ minHeight: "400px" }}>
+        <div className="text-center">
+          <Spinner animation="border" role="status" variant="primary" />
+          <p className="mt-3">Memuat dashboard...</p>
+        </div>
+      </Container>
+    );
+  }
 
   return (
     <>
       <Container fluid>
+        {error && (
+          <Alert variant="danger" dismissible>
+            ⚠️ {error}
+          </Alert>
+        )}
+
+        {/* STATS CARDS */}
         <Row>
-          <Col lg="3" sm="6">
+          <Col lg="3" sm="6" className="mb-3">
             <Card className="card-stats">
               <Card.Body>
                 <Row>
@@ -42,48 +149,50 @@ function Dashboard() {
                   </Col>
                   <Col xs="7">
                     <div className="numbers">
-                      <p className="card-category">Total Order Aktif</p>
-                      <Card.Title as="h4">{totalOrders} Transaksi</Card.Title>
+                      <p className="card-category">Order Aktif</p>
+                      <Card.Title as="h4">{stats.totalOrders}</Card.Title>
                     </div>
                   </Col>
                 </Row>
               </Card.Body>
               <Card.Footer>
-                <hr></hr>
+                <hr />
                 <div className="stats">
-                  <i className="fas fa-redo mr-1"></i>
-                  Data dari /orders/pending
+                  <i className="fas fa-sync mr-1"></i>
+                  Status: pending + assigned
                 </div>
               </Card.Footer>
             </Card>
           </Col>
-          <Col lg="3" sm="6">
+
+          <Col lg="3" sm="6" className="mb-3">
             <Card className="card-stats">
               <Card.Body>
                 <Row>
                   <Col xs="5">
                     <div className="icon-big text-center icon-warning">
-                      <i className="nc-icon nc-light-3 text-success"></i>
+                      <i className="nc-icon nc-circle-10 text-info"></i>
                     </div>
                   </Col>
                   <Col xs="7">
                     <div className="numbers">
-                      <p className="card-category">Total Petugas</p>
-                      <Card.Title as="h4">{totalPetugas} orang</Card.Title>
+                      <p className="card-category">Total User</p>
+                      <Card.Title as="h4">{totalUsers}</Card.Title>
                     </div>
                   </Col>
                 </Row>
               </Card.Body>
               <Card.Footer>
-                <hr></hr>
+                <hr />
                 <div className="stats">
-                  <i className="fas fa-redo mr-1"></i>
-                  Update Now
+                  <i className="fas fa-users mr-1"></i>
+                  Total User
                 </div>
               </Card.Footer>
             </Card>
           </Col>
-          <Col lg="3" sm="6">
+
+          <Col lg="3" sm="6" className="mb-3">
             <Card className="card-stats">
               <Card.Body>
                 <Row>
@@ -94,87 +203,154 @@ function Dashboard() {
                   </Col>
                   <Col xs="7">
                     <div className="numbers">
-                      <p className="card-category">Total Sampah</p>
-                      <Card.Title as="h4">{totalSampah}</Card.Title>
+                      <p className="card-category">Sampah Selesai</p>
+                      <Card.Title as="h4">{stats.totalSampah}</Card.Title>
                     </div>
                   </Col>
                 </Row>
               </Card.Body>
               <Card.Footer>
-                <hr></hr>
+                <hr />
                 <div className="stats">
-                  <i className="fas fa-redo mr-1"></i>
-                  Update Now
+                  <i className="fas fa-check mr-1"></i>
+                  Order completed
                 </div>
               </Card.Footer>
             </Card>
           </Col>
-          <Col lg="3" sm="6">
+
+          <Col lg="3" sm="6" className="mb-3">
             <Card className="card-stats">
               <Card.Body>
                 <Row>
                   <Col xs="5">
                     <div className="icon-big text-center icon-warning">
-                      <i className="nc-icon nc-favourite-28 text-primary"></i>
+                      <i className="nc-icon nc-money-coins text-warning"></i>
                     </div>
                   </Col>
                   <Col xs="7">
                     <div className="numbers">
-                      <p className="card-category">Riwayat</p>
-                      <Card.Title as="h4">{riwayat}</Card.Title>
+                      <p className="card-category">Transaksi Harian</p>
+                      <Card.Title as="h4" style={{ fontSize: "1.4rem", lineHeight: 1.2, whiteSpace: "nowrap" }}>
+                        Rp {dailyTransactions?.toLocaleString('id-ID') || '0'}
+                      </Card.Title>
                     </div>
                   </Col>
                 </Row>
               </Card.Body>
               <Card.Footer>
-                <hr></hr>
+                <hr />
                 <div className="stats">
-                  <i className="fas fa-redo mr-1"></i>
-                  Update now
+                  <i className="fas fa-clock mr-1"></i>
+                  Reset otomatis setiap 00:00
                 </div>
               </Card.Footer>
             </Card>
           </Col>
         </Row>
-        <Row>
+
+        {/* MAIN CONTENT */}
+        <Row className="mt-4">
+          {/* Aktivitas Terbaru */}
+          <Col md="6">
+            <Card>
+              <Card.Header>
+                <Card.Title as="h4">📊 Aktivitas Terbaru</Card.Title>
+                <p className="card-category">5 order terbaru</p>
+              </Card.Header>
+              <Card.Body>
+                {aktivitas.length > 0 ? (
+                  <div className="table-responsive">
+                    <table className="table table-hover">
+                      <thead>
+                        <tr>
+                          <th>Order</th>
+                          <th>Status</th>
+                          <th>Waktu</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {aktivitas.map((item, idx) => (
+                          <tr key={idx}>
+                            <td>{item.judul}</td>
+                            <td>{getStatusBadge(item.judul.split('-')[1]?.trim())}</td>
+                            <td style={{ fontSize: "0.85rem" }}>{item.waktu}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-muted">Tidak ada aktivitas</p>
+                )}
+              </Card.Body>
+            </Card>
+          </Col>
+
+          {/* Pending Orders */}
+          <Col md="6">
+            <Card>
+              <Card.Header>
+                <Card.Title as="h4">⏳ Order Menunggu</Card.Title>
+                <p className="card-category">Perlu ditugaskan ke petugas</p>
+              </Card.Header>
+              <Card.Body>
+                {pendingOrders.length > 0 ? (
+                  <div className="table-responsive">
+                    <table className="table table-hover table-sm">
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>User</th>
+                          <th>Jenis Sampah</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pendingOrders.map((order) => (
+                          <tr key={order.id}>
+                            <td>#{order.id}</td>
+                            <td>{order.user_name || "N/A"}</td>
+                            <td>{order.jenis_sampah || "Belum dipilih"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-muted">Semua order sudah ditugaskan ✓</p>
+                )}
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+
+        {/* CHART */}
+        <Row className="mt-4">
           <Col md="8">
             <Card>
               <Card.Header>
-                <Card.Title as="h4">Aktivitas Transaksi</Card.Title>
-                <p className="card-category">Performa Harian K-Trash</p>
+                <Card.Title as="h4">📈 Performa Harian</Card.Title>
+                <p className="card-category">Grafik aktivitas K-Trash</p>
               </Card.Header>
               <Card.Body>
                 <div className="ct-chart" id="chartHours">
                   <ChartistGraph
                     data={{
-                      labels: [
-                        "9:00",
-                        "12:00",
-                        "15:00",
-                        "18:00",
-                        "21:00",
-                        "00:00",
-                      ],
-                      series: [
-                        [2, 5, 3, 10, 4, 1],
-                      ],
+                      labels: ["9:00", "12:00", "15:00", "18:00", "21:00", "00:00"],
+                      series: [[stats.totalOrders || 2, 5, 3, 10, 4, 1]],
                     }}
                     type="Line"
                     options={{
                       low: 0,
-                      high: 15,
+                      high: Math.max(15, (stats.totalOrders || 10) + 5),
                       showArea: false,
                       height: "245px",
-                      axisX: {
-                        showGrid: false,
-                      },
+                      axisX: { showGrid: false },
                       lineSmooth: true,
                       showLine: true,
                       showPoint: true,
                       fullWidth: true,
-                      chartPadding: {
-                        right: 50,
-                      },
+                      chartPadding: { right: 50 },
                     }}
                   />
                 </div>
@@ -182,12 +358,12 @@ function Dashboard() {
               <Card.Footer>
                 <div className="legend">
                   <i className="fas fa-circle text-info"></i>
-                  Transaksi Masuk
+                  Total Order
                 </div>
-                <hr></hr>
+                <hr />
                 <div className="stats">
                   <i className="fas fa-history"></i>
-                  Updated 3 minutes ago
+                  Update real-time
                 </div>
               </Card.Footer>
             </Card>

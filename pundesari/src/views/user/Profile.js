@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { useHistory } from "react-router-dom";
 import { Container, Card, Row, Col, ListGroup } from "react-bootstrap";
+import Sidebar from "../../components/Sidebar.jsx";
+import "../../css/Dashboard.css";
+import "../../css/sidebar.css";
 
 function Profile() {
   const history = useHistory();
@@ -16,8 +19,11 @@ function Profile() {
   };
 
   return (
-    <div style={{ backgroundColor: "#F5F5F5", minHeight: "100vh" }}>
-      <div style={{
+    <div className="dashboard-layout">
+      <Sidebar />
+      <main className="dashboard-main">
+        <div style={{ backgroundColor: "#F5F5F5", minHeight: "100vh" }}>
+          <div style={{
         height: "200px",
         background: "linear-gradient(to bottom, #81C784, #C8E6C9)"
       }}></div>
@@ -87,6 +93,8 @@ function Profile() {
           </Col>
         </Row>
       </Container>
+        </div>
+      </main>
     </div>
   );
 }

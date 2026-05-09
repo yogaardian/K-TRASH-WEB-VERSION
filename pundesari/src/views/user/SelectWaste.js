@@ -2,6 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useHistory } from "react-router-dom";
 import axios from "axios";
 import { Container, Row, Col, Card, Form, Button } from "react-bootstrap";
+import Sidebar from "../../components/Sidebar.jsx";
+import "../../css/Dashboard.css";
+import "../../css/sidebar.css";
 
 function SelectWaste() {
   const history = useHistory();
@@ -82,8 +85,11 @@ function SelectWaste() {
   );
 
   return (
-    <div style={{ backgroundColor: "#FFFFFF", minHeight: "100vh" }}>
-      <Container className="py-4">
+    <div className="dashboard-layout">
+      <Sidebar />
+      <main className="dashboard-main">
+        <div style={{ backgroundColor: "#FFFFFF", minHeight: "100vh" }}>
+          <Container className="py-4">
         <div className="d-flex align-items-center mb-4">
           <i 
             className="nc-icon nc-minimal-left" 
@@ -145,6 +151,8 @@ function SelectWaste() {
           </Col>
         </Row>
       </Container>
+        </div>
+      </main>
     </div>
   );
 }

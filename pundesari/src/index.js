@@ -1,22 +1,5 @@
-/*!
-
-=========================================================
-* Light Bootstrap Dashboard React - v2.0.1
-=========================================================
-
-* Product Page: https://www.creative-tim.com/product/light-bootstrap-dashboard-react
-* Copyright 2022 Creative Tim (https://www.creative-tim.com)
-* Licensed under MIT (https://github.com/creativetimofficial/light-bootstrap-dashboard-react/blob/master/LICENSE.md)
-
-* Coded by Creative Tim
-
-=========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-*/
 import React from "react";
-import ReactDOM from "react-dom/client";
+import ReactDOM from "react-dom";
 
 import { BrowserRouter, Route, Switch, Redirect } from "react-router-dom";
 
@@ -26,8 +9,10 @@ import "./assets/scss/light-bootstrap-dashboard-react.scss?v=2.0.0";
 import "./assets/css/demo.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 
+import LandingPage from "views/LandingPage.js";
 import AdminLayout from "layouts/Admin.js";
 import Login from "views/Login.js";
+import Register from "views/Register.js";
 
 // User Flow
 import UserDashboard from "views/user/UserDashboard.js";
@@ -36,41 +21,122 @@ import History from "views/user/History.js";
 import PickupPage from "views/user/PickupPage.js";
 import SelectWaste from "views/user/SelectWaste.js";
 import FindDriver from "views/user/FindDriver.js";
+import TrackingPetugas from "views/user/TrackingPetugas.js";
+import Saldo from "views/user/Saldo.js";
+import HargaSampah from "views/user/HargaSampah.js";
 
 // Driver Flow
 import DriverDashboard from "views/driver/DriverDashboard.js";
 import OrderDetail from "views/driver/OrderDetail.js";
+import TrackingUser from "views/driver/TrackingUser.js";
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
-
-const isLogin = localStorage.getItem("isLogin");
-
-root.render(
+ReactDOM.render(
   <BrowserRouter>
     <Switch>
+      {/* Landing */}
+      <Route exact path="/" render={(props) => <LandingPage {...props} />} />
+
+      {/* Login */}
       <Route path="/login" render={(props) => <Login {...props} />} />
-      
+
+      <Route path="/Register" render={(props) => <Register {...props} />} />
+
       {/* User Routes */}
-      <Route path="/user/dashboard" render={(props) => <UserDashboard {...props} />} />
-      <Route path="/user/profile" render={(props) => <Profile {...props} />} />
-      <Route path="/user/history" render={(props) => <History {...props} />} />
-      <Route path="/user/pickup" render={(props) => <PickupPage {...props} />} />
-      <Route path="/user/select-waste" render={(props) => <SelectWaste {...props} />} />
-      <Route path="/user/find-driver" render={(props) => <FindDriver {...props} />} />
-      
+      <Route
+        path="/user/dashboard"
+        render={(props) => <UserDashboard {...props} />}
+      />
+
+      <Route
+        path="/user/profile"
+        render={(props) => <Profile {...props} />}
+      />
+
+      <Route
+        path="/user/history"
+        render={(props) => <History {...props} />}
+      />
+
+      <Route
+        path="/user/pickup"
+        render={(props) => <PickupPage {...props} />}
+      />
+
+      <Route
+        path="/user/select-waste"
+        render={(props) => <SelectWaste {...props} />}
+      />
+
+      <Route
+        path="/user/saldo"
+        render={(props) => <Saldo {...props} />}
+      />
+
+      <Route
+        path="/user/harga"
+        render={(props) => <HargaSampah {...props} />}
+      />
+
+      <Route
+        path="/user/notifications"
+        render={() => <Redirect to="/user/profile" />}
+      />
+
+      <Route
+        path="/user/find-driver"
+        render={(props) => <FindDriver {...props} />}
+      />
+
+      <Route
+        path="/user/tracking-petugas"
+        render={(props) => <TrackingPetugas {...props} />}
+      />
+
       {/* Driver Routes */}
-      <Route path="/driver/dashboard" render={(props) => <DriverDashboard {...props} />} />
-      <Route path="/driver/order/:id" render={(props) => <OrderDetail {...props} />} />
+      <Route
+        path="/driver/dashboard"
+        render={(props) => <DriverDashboard {...props} />}
+      />
+
+      <Route
+        path="/driver/order/:id"
+        render={(props) => <OrderDetail {...props} />}
+      />
+
+      <Route
+        path="/driver/tracking-user"
+        render={(props) => <TrackingUser {...props} />}
+      />
 
       {/* Admin Route */}
-      <Route path="/admin" render={(props) => {
-        // Protect the admin routes
-        if (!localStorage.getItem("isLogin")) {
-          return <Redirect to="/login" />;
-        }
-        return <AdminLayout {...props} />;
-      }} />
+      <Route
+        path="/admin"
+        render={(props) => {
+          const isLogin = localStorage.getItem("isLogin");
+          const role = localStorage.getItem("role");
+
+          if (!isLogin) {
+            return <Redirect to="/login" />;
+          }
+
+          if (role !== "admin") {
+            if (role === "petugas") {
+              return <Redirect to="/driver/dashboard" />;
+            }
+
+            if (role === "user") {
+              return <Redirect to="/user/dashboard" />;
+            }
+
+            return <Redirect to="/login" />;
+          }
+
+          return <AdminLayout {...props} />;
+        }}
+      />
+
       <Redirect from="/" to="/login" />
     </Switch>
-  </BrowserRouter>
+  </BrowserRouter>,
+  document.getElementById("root")
 );

@@ -11,7 +11,7 @@ function Icons() {
   useEffect(() => {
     const fetchTransactions = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/transactions');
+        const response = await axios.get('/transactions');
         setTransactions(response.data);
       } catch (error) {
         console.error('Failed to fetch transactions:', error);

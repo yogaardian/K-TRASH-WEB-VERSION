@@ -18,12 +18,12 @@
 import Dashboard from "views/admin/Dashboard.js";
 import UserProfile from "views/admin/UserProfile.js";
 import TableList from "views/admin/TableList.js";
-import Typography from "views/admin/Typography.js";
+import WasteManagement from "views/admin/WasteManagement.js";
 import Icons from "views/admin/Icons.js";
 import Maps from "views/admin/Maps.js";
 import Notifications from "views/admin/Notifications.js";
 import Upgrade from "views/admin/Upgrade.js";
-import Saldo from "views/admin/Saldo.js";
+import Saldo from "views/admin/SaldoAdmin.js";
 
 
 
@@ -50,10 +50,10 @@ const dashboardRoutes = [
     layout: "/admin"
   },
   {
-    path: "/typography",
+    path: "/waste-management",
     name: "Harga Sampah",
     icon: "nc-icon nc-paper-2",
-    component: Typography,
+    component: WasteManagement,
     layout: "/admin"
   },
   {

@@ -1,60 +1,98 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useHistory } from "react-router-dom";
-import { Container, Card, Button } from "react-bootstrap";
+import axios from "axios";
+import { Container, Card, Button, Table, Badge } from "react-bootstrap";
+import Sidebar from "../../components/Sidebar.jsx";
+import "../../css/Dashboard.css";
+import "../../css/sidebar.css";
 
 function History() {
   const history = useHistory();
-  // Simulated global history data
-  const data = [
-    { nama: "Botol Plastik", kg: 2 },
-    { nama: "Kardus", kg: 1.5 }
-  ];
-  const total = 15000;
+  const userId = localStorage.getItem("userId");
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleSave = () => {
-    alert("Transaksi berhasil disimpan");
-    history.push("/user/dashboard");
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const response = await axios.get(`/orders/user/${userId}`);
+        setOrders(response.data);
+      } catch (err) {
+        console.error("Error fetching history:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHistory();
+  }, [userId]);
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case "pending": return <Badge bg="warning">Pending</Badge>;
+      case "assigned": return <Badge bg="info">Assigned</Badge>;
+      case "dalam_perjalanan": return <Badge bg="primary">Dalam Perjalanan</Badge>;
+      case "arrived": return <Badge bg="secondary">Arrived</Badge>;
+      case "completed": return <Badge bg="success">Completed</Badge>;
+      default: return <Badge bg="light">Unknown</Badge>;
+    }
   };
 
   return (
-    <div style={{ backgroundColor: "#F5F5F5", minHeight: "100vh", padding: "20px 0" }}>
-      <Container>
-        <div className="d-flex align-items-center mb-4">
-          <i 
-            className="nc-icon nc-minimal-left" 
-            style={{ fontSize: "24px", cursor: "pointer", marginRight: "15px" }}
-            onClick={() => history.push("/user/dashboard")}
-          ></i>
-          <h4 style={{ fontWeight: "bold", color: "#333", margin: "0" }}>Riwayat & Konfirmasi</h4>
-        </div>
-        <Card style={{ borderRadius: "15px", border: "none", boxShadow: "0 5px 10px rgba(0,0,0,0.05)" }}>
-          <Card.Header style={{ backgroundColor: "#4CAF50", color: "white", borderRadius: "15px 15px 0 0", padding: "15px 20px" }}>
-            <Card.Title as="h4" className="mb-0 text-white" style={{color: 'white'}}>Konfirmasi Transaksi</Card.Title>
-          </Card.Header>
-          <Card.Body className="p-4">
-            <h5 style={{ fontWeight: "bold", fontSize: "16px" }}>Detail Sampah</h5>
-            <div className="mt-3 mb-4">
-              {data.map((item, index) => (
-                <div key={index} className="py-2 border-bottom">
-                  {item.nama} - {item.kg} Kg
-                </div>
-              ))}
+    <div className="dashboard-layout">
+      <Sidebar />
+      <main className="dashboard-main">
+        <div style={{ backgroundColor: "#F5F5F5", minHeight: "100vh", padding: "20px 0" }}>
+          <Container>
+            <div className="d-flex align-items-center mb-4">
+              <i 
+                className="nc-icon nc-minimal-left" 
+                style={{ fontSize: "24px", cursor: "pointer", marginRight: "15px" }}
+                onClick={() => history.push("/user/dashboard")}
+              ></i>
+              <h4 style={{ fontWeight: "bold", color: "#333", margin: "0" }}>Riwayat Order</h4>
             </div>
-            
-            <h5 style={{ fontWeight: "bold", fontSize: "18px", color: "#2E7D32" }}>
-              Total: Rp {total.toLocaleString('id-ID')}
-            </h5>
 
-            <Button 
-              className="w-100 mt-4" 
-              style={{ backgroundColor: "#4CAF50", border: "none", padding: "12px", borderRadius: "10px", fontSize: "16px", fontWeight: "bold" }}
-              onClick={handleSave}
-            >
-              Simpan
-            </Button>
-          </Card.Body>
-        </Card>
-      </Container>
+            <Card style={{ borderRadius: "15px", border: "none", boxShadow: "0 5px 10px rgba(0,0,0,0.05)" }}>
+              <Card.Body>
+                {loading ? (
+                  <p className="text-center">Memuat riwayat...</p>
+                ) : orders.length === 0 ? (
+                  <p className="text-center">Belum ada riwayat order</p>
+                ) : (
+                  <Table responsive>
+                    <thead>
+                      <tr>
+                        <th>Tanggal</th>
+                        <th>Jenis Sampah</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orders.map(order => (
+                        <tr key={order.id}>
+                          <td>{new Date(order.created_at).toLocaleDateString()}</td>
+                          <td>{order.jenis_sampah || "Tidak ada"}</td>
+                          <td>{getStatusBadge(order.status)}</td>
+                          <td>
+                            <Button 
+                              variant="outline-primary" 
+                              size="sm"
+                              onClick={() => alert(`Detail Order #${order.id}\nAlamat: ${order.address}\nCatatan: ${order.catatan || "Tidak ada"}`)}
+                            >
+                              Detail
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                )}
+              </Card.Body>
+            </Card>
+          </Container>
+        </div>
+      </main>
     </div>
   );
 }

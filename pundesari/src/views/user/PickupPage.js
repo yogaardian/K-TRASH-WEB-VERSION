@@ -4,6 +4,9 @@ import { Container, Row, Col, Card, Form, Button } from "react-bootstrap";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+import Sidebar from "../../components/Sidebar.jsx";
+import "../../css/Dashboard.css";
+import "../../css/sidebar.css";
 
 // Fix Leaflet's default icon path issues with Webpack
 delete L.Icon.Default.prototype._getIconUrl;
@@ -63,34 +66,46 @@ const handleGetLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
+          const lat = Number(pos.coords.latitude);
+          const lng = Number(pos.coords.longitude);
+          
+          console.log("GPS RAW:", pos.coords);
+          console.log("FINAL LAT:", lat);
+          console.log("FINAL LNG:", lng);
+          
           setPosition([lat, lng]);
 
           try {
             // Memanggil API Reverse Geocoding (Gratis dari OpenStreetMap)
+            // IMPORTANT: Hanya untuk alamat, koordinat tetap dari GPS
             const response = await fetch(
               `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
             );
             const data = await response.json();
 
             // Ambil alamat lengkap yang diformat oleh API
+            // Tapi koordinat tetap menggunakan pos.coords
             if (data && data.display_name) {
               setAlamat(data.display_name);
             } else {
-              setAlamat(`Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`);
+              setAlamat(`Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`);
             }
           } catch (err) {
             console.error("Gagal mendapatkan alamat:", err);
-            setAlamat(`Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`);
+            setAlamat(`Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`);
           } finally {
             setIsLocating(false);
           }
         },
         (err) => {
-          console.error(err);
+          console.error("Geolocation Error:", err);
           setIsLocating(false);
           alert("Gagal mengakses lokasi. Pastikan izin lokasi aktif.");
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0
         }
       );
     } else {
@@ -112,8 +127,11 @@ const handleGetLocation = () => {
   };
 
   return (
-    <div style={{ backgroundColor: "#FFFFFF", minHeight: "100vh" }}>
-      <Container className="py-4">
+    <div className="dashboard-layout">
+      <Sidebar />
+      <main className="dashboard-main">
+        <div style={{ backgroundColor: "#FFFFFF", minHeight: "100vh" }}>
+          <Container className="py-4">
         <div className="d-flex align-items-center mb-4">
           <i 
             className="nc-icon nc-minimal-left" 
@@ -223,6 +241,8 @@ const handleGetLocation = () => {
           </Col>
         </Row>
       </Container>
+        </div>
+      </main>
     </div>
   );
 }

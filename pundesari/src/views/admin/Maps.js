@@ -12,14 +12,15 @@ function Maps() {
   useEffect(() => {
     const fetchPendingOrders = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/orders/pending');
+        const response = await axios.get('/orders/pending');
         setConfirmationData(response.data.map(order => ({
           id: order.id,
           nama: order.user_name,
           jenisSampah: order.jenis_sampah,
-          berat: "-", // Placeholder
-          totalHarga: "-", // Placeholder
-          status: "Pending",
+          berat: order.total_berat || "-", // Use total_berat from completed orders
+          totalHarga: order.total_harga ? `Rp ${order.total_harga.toLocaleString()}` : "-", // Use total_harga from completed orders
+          status: order.status === "completed" ? "Menunggu Konfirmasi" : "Pending",
+          sampahData: order.sampah_data ? JSON.parse(order.sampah_data) : null
         })));
       } catch (error) {
         console.error('Failed to fetch orders:', error);
@@ -32,6 +33,8 @@ function Maps() {
   const getStatusBadge = (status) => {
     if (status === "Pending") {
       return <Badge bg="warning" text="dark">Pending</Badge>;
+    } else if (status === "Menunggu Konfirmasi") {
+      return <Badge bg="info" text="dark">Menunggu Konfirmasi</Badge>;
     } else if (status === "Disetujui") {
       return <Badge bg="success">Disetujui</Badge>;
     }
@@ -110,6 +113,16 @@ function Maps() {
                                 <>
                                   <Button variant="success" size="sm" className="mr-2">
                                     Setujui
+                                  </Button>
+                                  <Button variant="danger" size="sm">
+                                    Tolak
+                                  </Button>
+                                </>
+                              )}
+                              {data.status === "Menunggu Konfirmasi" && (
+                                <>
+                                  <Button variant="success" size="sm" className="mr-2">
+                                    Konfirmasi & Bayar
                                   </Button>
                                   <Button variant="danger" size="sm">
                                     Tolak

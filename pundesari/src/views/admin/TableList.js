@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import { usersAPI } from "../../services/api";
 
 // react-bootstrap components
 import {
@@ -23,12 +23,12 @@ function User() {
   useEffect(() => {
     const fetchDrivers = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/users/role/driver');
+        const response = await usersAPI.getUsersByRole('driver');
         setUsers(response.data.map(user => ({
           id: user.id,
           nama: user.nama,
           hp: user.nomor_hp,
-          status: "Aktif", // Placeholder
+          status: user.status || "Aktif",
         })));
       } catch (error) {
         console.error('Failed to fetch drivers:', error);
@@ -96,7 +96,7 @@ function User() {
                     <h4 className="title">Data Petugas</h4>
 
                     <p className="card-category">
-                      Total costumer = {users.length} orang
+                      Total petugas = {users.length} orang
                     </p>
                   </Col>
 
@@ -107,7 +107,7 @@ function User() {
                       className="btn-fill"
                       onClick={() => setShowForm(true)}
                     >
-                      Tambah User
+                      Tambah Petugas
                     </Button>
 
                   </Col>

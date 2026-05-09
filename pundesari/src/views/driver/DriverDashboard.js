@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useHistory } from "react-router-dom";
-import axios from "axios";
-import { Container, Card, Row, Col, Button, Badge, Form } from "react-bootstrap";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { Container, Card, Row, Col, Button, Badge, Form, Alert, Spinner } from "react-bootstrap";
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+import { dashboardAPI, ordersAPI, locationAPI } from "../../services/api";
 
 // Fix Leaflet's default icon path issues
 delete L.Icon.Default.prototype._getIconUrl;
@@ -16,6 +16,15 @@ L.Icon.Default.mergeOptions({
 
 const redIcon = new L.Icon({
   iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
+const blueIcon = new L.Icon({
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png",
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
   iconSize: [25, 41],
   iconAnchor: [12, 41],
@@ -39,43 +48,63 @@ function DriverDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [driverLocation, setDriverLocation] = useState([-7.8, 110.3]);
   const [activeOrder, setActiveOrder] = useState(null);
+  const [error, setError] = useState(null);
+  const [acceptingOrder, setAcceptingOrder] = useState(null);
 
-  // Get Driver Location
+  // Get Driver Location - Watch GPS
   useEffect(() => {
-    if (navigator.geolocation) {
-      const watchId = navigator.geolocation.watchPosition(
-        (pos) => {
-          setDriverLocation([pos.coords.latitude, pos.coords.longitude]);
-          // If active order, send location to backend
-          if (activeOrder) {
-            axios.post("/driver/location", {
-              driver_id: parseInt(driverId),
-              order_id: activeOrder.id,
-              lat: pos.coords.latitude,
-              lng: pos.coords.longitude
-            }).catch(err => console.error("Location update failed", err));
-          }
-        },
-        (err) => console.error(err),
-        { enableHighAccuracy: true, distanceFilter: 10 }
-      );
-      return () => navigator.geolocation.clearWatch(watchId);
-    }
+    if (!navigator.geolocation) return;
+    
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const lat = Number(pos.coords.latitude);
+        const lng = Number(pos.coords.longitude);
+        console.log("🚗 GPS UPDATE:", lat, lng);
+        setDriverLocation([lat, lng]);
+      },
+      (err) => console.error("Geolocation error:", err),
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, []);
+
+  // Send location to backend when activeOrder changes
+  useEffect(() => {
+    if (!activeOrder || !navigator.geolocation) return;
+
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const lat = Number(pos.coords.latitude);
+        const lng = Number(pos.coords.longitude);
+        console.log('🚗 SEND LOCATION:', lat, lng, 'Order:', activeOrder.id);
+        
+        // Send location to backend
+        locationAPI.sendDriverLocation({
+          driver_id: parseInt(driverId),
+          order_id: activeOrder.id,
+          lat,
+          lng
+        }).catch(err => console.error("Location update failed", err));
+      },
+      (err) => console.error(err),
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
   }, [activeOrder, driverId]);
 
   // Polling pending orders
   useEffect(() => {
-    const fetchOrders = () => {
+    const fetchOrders = async () => {
       if (!isOnline) return;
-      axios.get("/orders/pending")
-        .then(res => {
-          setOrders(res.data);
-          setIsLoading(false);
-        })
-        .catch(err => {
-          console.error(err);
-          setIsLoading(false);
-        });
+      try {
+        const res = await dashboardAPI.getPendingOrders();
+        setOrders(res.data);
+        setIsLoading(false);
+      } catch (err) {
+        console.error("Error fetching orders:", err);
+        setError(err.message);
+        setIsLoading(false);
+      }
     };
 
     fetchOrders();
@@ -85,24 +114,37 @@ function DriverDashboard() {
 
   const handleAcceptOrder = async (order) => {
     try {
-      const res = await axios.patch(`/orders/accept/${order.id}`, {
-        driver_id: parseInt(driverId)
-      });
+      setAcceptingOrder(order.id);
+      const res = await ordersAPI.acceptOrder(order.id, parseInt(driverId));
       if (res.data.status === "success") {
         setActiveOrder(order);
         setOrders(orders.filter(o => o.id !== order.id));
+        alert("✅ Order diterima!");
       } else {
-        alert(res.data.message || "Gagal menerima order");
+        alert(res.data.message || "❌ Gagal menerima order");
       }
     } catch (err) {
-      alert("Error menerima order");
+      alert("❌ Error: " + err.message);
+      console.error(err);
+    } finally {
+      setAcceptingOrder(null);
     }
   };
 
-  const handleCompleteOrder = () => {
-    // In a real app we'd call an API to mark as complete
-    setActiveOrder(null);
-    alert("Order Selesai!");
+  const handleCompleteOrder = async () => {
+    if (!activeOrder) return;
+    try {
+      const res = await ordersAPI.updateOrderStatus(activeOrder.id, {
+        driver_id: parseInt(driverId),
+        status: 'completed'
+      });
+      if (res.data.status === "success") {
+        setActiveOrder(null);
+        alert("✅ Order Selesai!");
+      }
+    } catch (err) {
+      alert("❌ Error: " + err.message);
+    }
   };
 
   const handleLogout = () => {
@@ -137,6 +179,17 @@ function DriverDashboard() {
       </div>
 
       <Container className="py-4">
+        {/* Debug Panel */}
+        <Card style={{ borderRadius: "16px", border: "2px solid #FFC107", backgroundColor: "#FFFACD", marginBottom: "15px" }}>
+          <Card.Body style={{ padding: "12px" }}>
+            <div style={{ fontSize: "12px", fontFamily: "monospace", color: "#333" }}>
+              <div>🚗 DRIVER: {JSON.stringify(driverLocation)}</div>
+              {activeOrder && <div>👤 USER: {JSON.stringify([activeOrder.user_lat, activeOrder.user_lng])}</div>}
+              <div>📍 ACTIVE ORDER: {activeOrder ? `Order #${activeOrder.id}` : 'None'}</div>
+            </div>
+          </Card.Body>
+        </Card>
+
         {/* Map */}
         <div style={{ height: "280px", borderRadius: "16px", overflow: "hidden", border: "2px solid #C8E6C9", marginBottom: "20px" }}>
           <MapContainer center={driverLocation} zoom={14} style={{ height: "100%", width: "100%" }}>
@@ -144,15 +197,21 @@ function DriverDashboard() {
             <ChangeView center={driverLocation} zoom={14} />
             
             {/* Driver Marker */}
-            <Marker position={driverLocation}>
+            <Marker position={driverLocation} icon={blueIcon}>
               <Popup>Lokasi Anda</Popup>
             </Marker>
 
             {/* Active Order Marker */}
             {activeOrder && activeOrder.user_lat && activeOrder.user_lng && (
-              <Marker position={[activeOrder.user_lat, activeOrder.user_lng]} icon={redIcon}>
-                <Popup>Lokasi Jemput: {activeOrder.address}</Popup>
-              </Marker>
+              <>
+                <Marker position={[Number(activeOrder.user_lat), Number(activeOrder.user_lng)]} icon={redIcon}>
+                  <Popup>👤 Lokasi Jemput: {activeOrder.address}</Popup>
+                </Marker>
+                <Polyline 
+                  positions={[driverLocation, [Number(activeOrder.user_lat), Number(activeOrder.user_lng)]]} 
+                  pathOptions={{ color: "#4CAF50", weight: 5 }}
+                />
+              </>
             )}
           </MapContainer>
         </div>

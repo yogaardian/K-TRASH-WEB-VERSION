@@ -2,6 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useHistory } from "react-router-dom";
 import axios from "axios";
 import { Container, Button, Spinner } from "react-bootstrap";
+import Sidebar from "../../components/Sidebar.jsx";
+import "../../css/Dashboard.css";
+import "../../css/sidebar.css";
 
 function FindDriver() {
   const history = useHistory();
@@ -20,7 +23,7 @@ function FindDriver() {
             clearInterval(interval);
             // Driver found! 
             alert("Petugas Ditemukan!");
-            history.push("/user/dashboard"); // For now return to dashboard, can be linked to tracking
+            history.push("/user/tracking-petugas"); // Redirect to tracking page
           }
         })
         .catch(err => console.error(err));
@@ -35,8 +38,11 @@ function FindDriver() {
   };
 
   return (
-    <div style={{ backgroundColor: "#F0F9F1", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      <Container className="text-center d-flex flex-column" style={{ flexGrow: 1 }}>
+    <div className="dashboard-layout">
+      <Sidebar />
+      <main className="dashboard-main">
+        <div style={{ backgroundColor: "#F0F9F1", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+          <Container className="text-center d-flex flex-column" style={{ flexGrow: 1 }}>
         <div 
           className="w-100 py-4 mt-5" 
           style={{ backgroundColor: "rgba(180, 188, 180, 0.5)", borderRadius: "15px" }}
@@ -84,6 +90,8 @@ function FindDriver() {
           </Button>
         </div>
       </Container>
+        </div>
+      </main>
     </div>
   );
 }
