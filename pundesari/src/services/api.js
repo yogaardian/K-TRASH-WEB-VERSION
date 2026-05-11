@@ -69,6 +69,8 @@ export const hargaAPI = {
 // ================= USERS =================
 export const usersAPI = {
   getUsersByRole: (role) => apiClient.get(`/users/role/${role}`),
+  createUser: (data) => apiClient.post('/users', data),
+  deleteUser: (userId) => apiClient.delete(`/users/${userId}`),
   login: (email, password) => apiClient.post('/login', { email, password }),
   register: (data) => apiClient.post('/register', data),
 };
@@ -78,6 +80,7 @@ export const transactionsAPI = {
   // Admin: Pending & All Transactions
   getPendingTransactions: () => apiClient.get('/admin/pending-transactions'),
   getAllTransactions: () => apiClient.get('/admin/transactions'),
+  getTransactions: (params) => apiClient.get('/transactions', { params }),
   
   // Admin: Hold Balance Management
   getHoldSummary: () => apiClient.get('/admin/hold-summary'),

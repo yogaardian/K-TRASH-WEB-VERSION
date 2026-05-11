@@ -20,21 +20,23 @@ function User() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchDrivers = async () => {
+    try {
+      const response = await usersAPI.getUsersByRole('petugas');
+      setUsers(response.data.map(user => ({
+        id: user.id,
+        nama: user.nama,
+        hp: user.nomor_hp,
+        role: user.role,
+        status: user.status || "Aktif",
+      })));
+    } catch (error) {
+      console.error('Failed to fetch drivers:', error);
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const fetchDrivers = async () => {
-      try {
-        const response = await usersAPI.getUsersByRole('driver');
-        setUsers(response.data.map(user => ({
-          id: user.id,
-          nama: user.nama,
-          hp: user.nomor_hp,
-          status: user.status || "Aktif",
-        })));
-      } catch (error) {
-        console.error('Failed to fetch drivers:', error);
-      }
-      setLoading(false);
-    };
     fetchDrivers();
   }, []);
 
@@ -46,38 +48,46 @@ function User() {
   const [hp, setHp] = useState("");
   const [status, setStatus] = useState("");
 
-  // tambah user
-  const tambahUser = () => {
-
+  // tambah usere
+  const tambahUsr = async () => {
     if (nama === "" || hp === "" || status === "") {
       alert("Isi semua data!");
       return;
     }
 
-    const nomorBaru = users.length + 1;
+    try {
+      const newUser = {
+        nama,
+        email: `${nama.toLowerCase().replace(/\s+/g, '.')}@ktrash.local`,
+        password: '123456',
+        role: 'petugas',
+        nomor_hp: hp,
+      };
 
-    const userBaru = {
-      id: nomorBaru < 10 ? `0${nomorBaru}` : nomorBaru,
-      nama: nama,
-      hp: hp,
-      status: status,
-    };
+      await usersAPI.createUser(newUser);
+      await fetchDrivers();
 
-    setUsers([...users, userBaru]);
-
-    // reset form
-    setNama("");
-    setHp("");
-    setStatus("");
-
-    // tutup form
-    setShowForm(false);
+      setNama("");
+      setHp("");
+      setStatus("");
+      setShowForm(false);
+    } catch (error) {
+      console.error('Failed to add petugas:', error);
+      alert('Gagal menambahkan petugas. Coba lagi.');
+    }
   };
 
   // hapus user
-  const hapusUser = (id) => {
-    const dataBaru = users.filter((user) => user.id !== id);
-    setUsers(dataBaru);
+  const hapusUser = async (id) => {
+    if (!window.confirm('Yakin ingin menghapus petugas ini?')) return;
+
+    try {
+      await usersAPI.deleteUser(id);
+      setUsers((prevUsers) => prevUsers.filter((user) => user.id !== id));
+    } catch (error) {
+      console.error('Failed to delete petugas:', error);
+      alert('Gagal menghapus petugas. Coba lagi.');
+    }
   };
 
   return (
@@ -253,20 +263,19 @@ function User() {
 
                               <Button
                                 variant="warning"
-                              size="sm"
-                              className="mr-2"
-                            >
-                              Edit
-                            </Button>
+                                size="sm"
+                                className="mr-2"
+                              >
+                                Edit
+                              </Button>
 
-                            <Button
-                              variant="danger"
-                              size="sm"
-                              onClick={() => hapusUser(user.id)}
-                            >
-                              Hapus
-                            </Button>
-
+                              <Button
+                                variant="danger"
+                                size="sm"
+                                onClick={() => hapusUser(user.id)}
+                              >
+                                Hapus
+                              </Button>
                           </td>
 
                         </tr>

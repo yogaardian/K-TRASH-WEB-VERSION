@@ -512,13 +512,58 @@ app.delete('/harga/:id', async (req, res) => {
 app.get('/users/role/:role', async (req, res) => {
   try {
     const role = req.params.role;
+    let sql = 'SELECT id, nama, email, nomor_hp, role FROM users WHERE role = ?';
+    let params = [role];
 
-    const [result] = await db.query(
-      'SELECT id, nama, email, nomor_hp FROM users WHERE role = ?',
-      [role],
+    if (role === 'driver' || role === 'petugas') {
+      sql = 'SELECT id, nama, email, nomor_hp, role FROM users WHERE role IN (?, ?)';
+      params = ['driver', 'petugas'];
+    }
+
+    const [result] = await db.query(sql, params);
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+app.post('/users', async (req, res) => {
+  try {
+    let { nama, email, password, role, nomor_hp } = req.body;
+    if (!nama || !email || !password || !role || !nomor_hp) {
+      return res.status(400).json({ status: 'fail', message: 'Semua field wajib diisi' });
+    }
+
+    if (role === 'driver') {
+      role = 'petugas';
+    }
+
+    await db.query(
+      'INSERT INTO users (nama, email, password, role, nomor_hp) VALUES (?, ?, ?, ?, ?)',
+      [nama, email, password, role, nomor_hp],
     );
 
-    res.json(result);
+    res.json({ status: 'success' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+app.delete('/users/:id', async (req, res) => {
+  try {
+    const userId = Number(req.params.id);
+    if (!userId) {
+      return res.status(400).json({ status: 'fail', message: 'User id tidak valid' });
+    }
+
+    const [result] = await db.query('DELETE FROM users WHERE id = ?', [userId]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ status: 'fail', message: 'User tidak ditemukan' });
+    }
+
+    res.json({ status: 'success' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ status: 'error', message: err.message });
@@ -535,7 +580,7 @@ app.get('/stats/dashboard', async (req, res) => {
 
     // Total petugas (drivers)
     const [totalPetugas] = await db.query(
-      "SELECT COUNT(*) as total FROM users WHERE role = 'driver'"
+      "SELECT COUNT(*) as total FROM users WHERE role IN ('driver', 'petugas')"
     );
 
     // Total sampah (sum of berat from completed orders or something, but since no berat, maybe count completed orders)
@@ -1008,12 +1053,61 @@ app.patch('/orders/approve/:id', async (req, res) => {
 });
 app.get('/transactions', async (req, res) => {
   try {
+    const { range, start_date, end_date, status, type } = req.query;
+    const conditions = [];
+    const params = [];
+
+    if (range) {
+      switch (range) {
+        case 'day':
+          conditions.push('DATE(st.created_at) = CURDATE()');
+          break;
+        case 'week':
+          conditions.push('YEARWEEK(st.created_at, 1) = YEARWEEK(CURDATE(), 1)');
+          break;
+        case 'month':
+          conditions.push('YEAR(st.created_at) = YEAR(CURDATE()) AND MONTH(st.created_at) = MONTH(CURDATE())');
+          break;
+        case 'year':
+          conditions.push('YEAR(st.created_at) = YEAR(CURDATE())');
+          break;
+      }
+    }
+
+    if (start_date) {
+      conditions.push('DATE(st.created_at) >= ?');
+      params.push(start_date);
+    }
+
+    if (end_date) {
+      conditions.push('DATE(st.created_at) <= ?');
+      params.push(end_date);
+    }
+
+    if (status) {
+      conditions.push('st.status = ?');
+      params.push(status);
+    }
+
+    if (type) {
+      conditions.push('st.type = ?');
+      params.push(type);
+    }
+
+    const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
     const [result] = await db.query(`
-      SELECT t.*, u.nama as user_name
-      FROM transactions t
-      JOIN users u ON t.user_id = u.id
-      ORDER BY t.created_at DESC
-    `);
+      SELECT st.*, u.nama AS user_name, u.role AS user_role,
+        ca.nama AS created_by_name, aa.nama AS approved_by_name,
+        o.address, o.status AS order_status
+      FROM saldo_transactions st
+      LEFT JOIN users u ON st.user_id = u.id
+      LEFT JOIN users ca ON st.created_by = ca.id
+      LEFT JOIN users aa ON st.approved_by = aa.id
+      LEFT JOIN orders o ON st.order_id = o.id
+      ${whereClause}
+      ORDER BY st.created_at DESC
+    `, params);
 
     res.json(result);
   } catch (err) {

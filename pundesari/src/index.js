@@ -120,7 +120,7 @@ ReactDOM.render(
           }
 
           if (role !== "admin") {
-            if (role === "petugas") {
+            if (role === "petugas" || role === "driver") {
               return <Redirect to="/driver/dashboard" />;
             }
 

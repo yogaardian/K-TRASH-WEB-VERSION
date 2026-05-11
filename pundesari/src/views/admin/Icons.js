@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+import { transactionsAPI } from "../../services/api";
 
 // react-bootstrap components
 import { Button, Card, Container, Row, Col, Form, InputGroup, Table } from "react-bootstrap";
@@ -7,19 +9,79 @@ import { Button, Card, Container, Row, Col, Form, InputGroup, Table } from "reac
 function Icons() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filterType, setFilterType] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  const fetchTransactions = async (params = {}) => {
+    setLoading(true);
+    try {
+      const response = await transactionsAPI.getTransactions(params);
+      setTransactions(response.data);
+    } catch (error) {
+      console.error('Failed to fetch transactions:', error);
+      setTransactions([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchTransactions = async () => {
-      try {
-        const response = await axios.get('/transactions');
-        setTransactions(response.data);
-      } catch (error) {
-        console.error('Failed to fetch transactions:', error);
-      }
-      setLoading(false);
-    };
     fetchTransactions();
   }, []);
+
+  const buildFilterParams = () => {
+    const params = {};
+    if (filterType !== 'all') {
+      params.range = filterType;
+    }
+    if (filterType === 'custom') {
+      if (startDate) params.start_date = startDate;
+      if (endDate) params.end_date = endDate;
+    }
+    return params;
+  };
+
+  const handleFilter = () => {
+    fetchTransactions(buildFilterParams());
+  };
+
+  const exportPdf = () => {
+    const doc = new jsPDF({ orientation: 'landscape' });
+    doc.setFontSize(14);
+    doc.text('Laporan Transaksi', 14, 20);
+
+    const headers = [[
+      'Tanggal',
+      'Kode User',
+      'Nama',
+      'Tipe',
+      'Jumlah',
+      'Status',
+      'Deskripsi'
+    ]];
+
+    const rows = transactions.map(tx => [
+      tx.created_at ? new Date(tx.created_at).toLocaleString() : '-',
+      tx.user_id || '-',
+      tx.user_name || '-',
+      tx.type || '-',
+      tx.amount != null ? `Rp ${Number(tx.amount).toLocaleString()}` : '-',
+      tx.status || '-',
+      tx.description || tx.order_status || '-',
+    ]);
+
+    doc.autoTable({
+      head: headers,
+      body: rows,
+      startY: 26,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [33, 150, 243] },
+    });
+
+    const dateSuffix = new Date().toISOString().slice(0, 10);
+    doc.save(`laporan-transaksi-${dateSuffix}.pdf`);
+  };
 
   return (
     <>
@@ -32,18 +94,53 @@ function Icons() {
               </Card.Header>
               <Card.Body>
                 <Row className="align-items-center mb-3">
-                  <Col md="4" className="mb-2 mb-md-0">
+                  <Col md="3" className="mb-2 mb-md-0">
                     <InputGroup>
-                      <Form.Control placeholder="05/04/2024 - 06/04/2024" type="text" />
+                      <Form.Control
+                        as="select"
+                        value={filterType}
+                        onChange={(e) => setFilterType(e.target.value)}
+                      >
+                        <option value="all">Semua</option>
+                        <option value="day">Hari Ini</option>
+                        <option value="week">Minggu Ini</option>
+                        <option value="month">Bulan Ini</option>
+                        <option value="year">Tahun Ini</option>
+                        <option value="custom">Rentang Custom</option>
+                      </Form.Control>
                     </InputGroup>
                   </Col>
-                  <Col md="5" className="mb-2 mb-md-0">
-                    <InputGroup>
-                      <Form.Control placeholder="Cari Transaksi" type="text" />
-                    </InputGroup>
-                  </Col>
+
+                  {filterType === 'custom' && (
+                    <>
+                      <Col md="3" className="mb-2 mb-md-0">
+                        <InputGroup>
+                          <Form.Control
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                          />
+                        </InputGroup>
+                      </Col>
+                      <Col md="3" className="mb-2 mb-md-0">
+                        <InputGroup>
+                          <Form.Control
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                          />
+                        </InputGroup>
+                      </Col>
+                    </>
+                  )}
+
                   <Col md="3" className="text-md-right">
-                    <Button variant="outline-secondary">Filter</Button>
+                    <Button variant="outline-secondary" className="mr-2" onClick={handleFilter}>
+                      Filter
+                    </Button>
+                    <Button variant="success" onClick={exportPdf}>
+                      Export PDF
+                    </Button>
                   </Col>
                 </Row>
 
@@ -70,8 +167,8 @@ function Icons() {
                             <td>{new Date(tx.created_at).toLocaleDateString()}</td>
                             <td>{tx.user_id}</td>
                             <td>{tx.user_name}</td>
-                            <td>-</td> {/* Placeholder */}
-                            <td>Rp {tx.amount ? tx.amount.toLocaleString() : 0}</td>
+                            <td>{tx.type || '-'}</td>
+                            <td>Rp {tx.amount ? Number(tx.amount).toLocaleString() : '0'}</td>
                             <td>
                               <Button variant="success" size="sm" className="mr-2">
                                 Detail

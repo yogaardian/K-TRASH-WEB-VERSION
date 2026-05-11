@@ -80,7 +80,7 @@ export const DashboardProvider = ({ children }) => {
         }
 
         // Driver Dashboard
-        if (user.role === 'driver') {
+        if (user.role === 'driver' || user.role === 'petugas') {
           const ordersRes = await dashboardAPI.getPendingOrders();
           data.orders = ordersRes.data;
         }
@@ -119,7 +119,7 @@ export const DashboardProvider = ({ children }) => {
         data.orders = ordersRes.data;
       }
 
-      if (user.role === 'driver') {
+      if (user.role === 'driver' || user.role === 'petugas') {
         const ordersRes = await dashboardAPI.getPendingOrders();
         data.orders = ordersRes.data;
       }

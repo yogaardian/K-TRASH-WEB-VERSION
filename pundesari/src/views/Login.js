@@ -32,25 +32,23 @@ function Login() {
       });
 
       if (response.data.status === "success") {
+        // Normalize role aliases from backend
+        const role = response.data.role === 'petugas' ? 'driver' : response.data.role;
+
         // 1. Simpan data sesi ke LocalStorage
         localStorage.setItem("isLogin", "true");
         localStorage.setItem("nama", response.data.nama);
-        localStorage.setItem("role", response.data.role);
+        localStorage.setItem("role", role);
         localStorage.setItem("userId", response.data.id);
 
         // 2. Logika Pengalihan berdasarkan Role
-        const userRole = response.data.role;
-
-        if (userRole === "admin") {
+        if (role === "admin") {
           history.push("/admin/dashboard");
-        } 
-        else if (userRole === "petugas") {
+        } else if (role === "driver") {
           history.push("/driver/dashboard");
-        } 
-        else if (userRole === "user") {
+        } else if (role === "user") {
           history.push("/user/dashboard");
-        } 
-        else {
+        } else {
           setError("Role tidak dikenali. Hubungi admin.");
         }
       } else {
